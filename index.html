@@ -203,8 +203,8 @@ tr:last-child td{border-bottom:0}
   <h2>保存したレシピ</h2>
   <div class="cards" id="m-saved"></div>
   <details class="panel">
-    <summary>所持数と保存レシピを別の端末に移す</summary>
-    <p class="note">きのみの所持数と保存レシピは、この端末のブラウザに保存されます。別の端末に移すときは、書き出した文字をコピーして、移す先で貼り付けて読み込んでください。</p>
+    <summary id="c-io-title">所持数と保存レシピを別の端末に移す</summary>
+    <p class="note" id="c-io-note">きのみの所持数と保存レシピは、この端末のブラウザに保存されます。別の端末に移すときは、書き出した文字をコピーして、移す先で貼り付けて読み込んでください。</p>
     <textarea id="c-io" aria-label="書き出しデータ"></textarea>
     <div class="row"><button class="btn plain" id="c-export">書き出す</button><button class="btn plain" id="c-import">貼り付けた内容を読み込む</button><span class="hint" id="c-iomsg"></span></div>
   </details>
@@ -316,7 +316,7 @@ $("unsupported").hidden=!!browserOf(navigator.userAgent)&&!(navigator.brave);
 var WEB=!!(window.claude&&window.claude.use),sharedDrain=null;
 function drain(){return sharedDrain||S.drain;}
 var KEY="za-donut-v1";
-var S={stock:{},saved:[],drain:[1,1.6,3.5,7.5,10],tab:"find",form:null,make:[]};
+var S={stock:{},saved:[],dict:{},drain:[1,1.6,3.5,7.5,10],tab:"find",form:null,make:[]};
 try{var raw=localStorage.getItem(KEY);if(raw){var o=JSON.parse(raw);for(var k in o)if(k!=="custom")S[k]=o[k];}}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 
@@ -324,6 +324,7 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 var B=[],BY={},D={},canEdit=false,db=null;
 function num(v){v=Math.floor(+v);return v>0&&isFinite(v)?Math.min(v,9999):0;}
 function clean(d){if(!d||!Array.isArray(d.f)||d.f.length!==5)return null;return {name:String(d.name||"").slice(0,30),f:d.f.map(num),lv:num(d.lv),cal:num(d.cal)};}
+function cleanAll(src){var n={};Object.keys(src||{}).forEach(function(id){var c=clean(src[id]);if(c&&/^[nhc]\d+$/.test(id))n[id]=c;});return n;}
 function build(){
   B=[];BY={};
   NAMES.forEach(function(n,i){var r=NORMAL[i];B.push({id:"n"+i,name:n+"のみ",f:r.slice(0,5),lv:r[5],cal:r[6],kind:"normal",tier:0});});
@@ -501,7 +502,7 @@ function renderBerry(){
   $("b-table").tBodies[0].innerHTML=list.map(function(b){
     return "<tr><td>"+esc(short(b))+(b.kind==="custom"?' <span class="tag">追加</span>':b.edited?' <span class="tag">修正</span>':"")+"</td>"+
       b.f.map(function(v,i){return '<td class="'+(v?"v f"+i:"z")+'">'+v+"</td>";}).join("")+
-      "<td>"+b.sum+"</td><td>+"+b.lv+"</td><td>"+b.cal+"</td><td>"+(b.kind==="hyper"?TIERS[b.tier]:b.kind==="normal"?"きのみショップ":"オーナーが追加")+"</td>"+
+      "<td>"+b.sum+"</td><td>+"+b.lv+"</td><td>"+b.cal+"</td><td>"+(b.kind==="hyper"?TIERS[b.tier]:b.kind==="normal"?"きのみショップ":WEB?"オーナーが追加":"自分で追加")+"</td>"+
       '<td><span class="stock"><button data-s="-1" data-id="'+b.id+'" aria-label="減らす">−</button><input type="number" min="0" inputmode="numeric" data-id="'+b.id+'" value="'+(S.stock[b.id]||0)+'" aria-label="'+esc(b.name)+'の所持数"><button data-s="1" data-id="'+b.id+'" aria-label="増やす">＋</button></span></td></tr>';}).join("");
 }
 $("b-kind").addEventListener("click",function(e){var b=e.target.closest("button");if(b){bKind=b.dataset.k;renderBerry();}});
@@ -523,14 +524,14 @@ function renderPower(){
 
 /* ---- 設定 ---- */
 function renderConf(){
-  $("c-who").textContent=WEB?"この設定画面はオーナーだけに表示されます。ここでの変更は、ページを開いている全員に反映されます。":"ダウンロード版の設定です。変更はこの端末のブラウザにだけ保存されます。";
+  $("c-who").textContent=WEB?"この設定画面はオーナーだけに表示されます。ここでの変更は、ページを開いている全員に反映されます。":"ダウンロード版は、使う人が自分で管理できます。ここでの変更はこの端末のブラウザにだけ保存され、ほかの人には影響しません。";
   $("c-drain").innerHTML=drain().map(function(v,i){return '<label class="field"><span>★'+(i+1)+'のひずみ</span><input type="number" id="c-d'+i+'" data-d="'+i+'" min="0.1" step="0.1" inputmode="decimal" value="'+v+'"></label>';}).join("");
   renderEdit();
 }
 function renderEdit(){
   $("e-form").hidden=!canEdit;
   $("e-badge").textContent=canEdit?"編集できます":"オーナーのみ";
-  if(!db)$("e-note").textContent="辞書は全データ入りの完成状態です。更新できるのは公開ページのオーナーだけで、この画面では読み取り専用です。";
+  if(!WEB)$("e-note").textContent="辞書は最初から全データが入っています。ダウンロード版では、数値の修正やきのみの追加を自分用にできます。変更はこの端末のブラウザに保存されます。";
   var cur=$("e-target").value;
   $("e-target").innerHTML='<option value="">＋ 新しいきのみを追加</option>'+B.map(function(b){return '<option value="'+b.id+'">'+esc(b.name)+(b.kind==="custom"?"（追加）":b.edited?"（修正済み）":"")+"</option>";}).join("");
   if(BY[cur])$("e-target").value=cur;
@@ -553,7 +554,7 @@ $("e-save").addEventListener("click",function(){
     if(B.some(function(b){return b.name===name;})){$("e-msg").textContent="同じ名前のきのみがあります";return;}id="c"+Date.now();}
   var doc={name:BY[id]&&BY[id].kind!=="custom"?BY[id].name:name,f:[0,1,2,3,4].map(function(i){return num($("e-f"+i).value);}),lv:num($("e-lv").value),cal:num($("e-cal").value)};
   $("e-msg").textContent="保存しています…";
-  db.doc("berries/"+id).set(doc).then(function(){$("e-target").value=BY[id]?id:"";$("e-msg").textContent="「"+doc.name+"」を保存しました。全員の辞書に反映されます";},writeFail);
+  db.doc("berries/"+id).set(doc).then(function(){$("e-target").value=BY[id]?id:"";$("e-msg").textContent="「"+doc.name+"」を保存しました。"+(WEB?"全員の辞書に反映されます":"この端末の辞書に反映しました");},writeFail);
 });
 $("e-undo").addEventListener("click",function(){
   var id=$("e-target").value;if(!db||!canEdit||!D[id])return;
@@ -564,18 +565,30 @@ $("c-drain").addEventListener("change",function(e){var i=e.target.dataset.d;if(i
   if(!db||!canEdit)return;
   var arr=drain().slice();arr[i]=v;$("c-drain-msg").textContent="保存しています…";
   db.doc("config/drain").set({v:arr}).then(function(){$("c-drain-msg").textContent="保存しました。全員の腹持ち時間に反映されます";},function(){$("c-drain-msg").textContent="保存できませんでした。通信状態を確かめて、もう一度入力してください";});});
-$("c-export").addEventListener("click",function(){var t=$("c-io");t.value=JSON.stringify({stock:S.stock,saved:S.saved});t.select();
+$("c-export").addEventListener("click",function(){var t=$("c-io");t.value=JSON.stringify(WEB?{stock:S.stock,saved:S.saved}:{stock:S.stock,saved:S.saved,dict:S.dict,drain:S.drain});t.select();
   var done=function(m){$("c-iomsg").textContent=m;};
   try{navigator.clipboard.writeText(t.value).then(function(){done("コピーしました");},function(){done("上の文字を選択してコピーしてください");});}catch(err){done("上の文字を選択してコピーしてください");}});
 $("c-import").addEventListener("click",function(){
   try{var o=JSON.parse($("c-io").value);if(typeof o!=="object"||!o)throw 0;
     if(o.stock&&typeof o.stock==="object")S.stock=o.stock;
+    if(!WEB){
+      if(o.dict&&typeof o.dict==="object"){S.dict=o.dict;D=cleanAll(S.dict);build();}
+      if(Array.isArray(o.drain)&&o.drain.length===5&&o.drain.every(function(v){return typeof v==="number"&&v>0;}))S.drain=o.drain;
+    }
     if(Array.isArray(o.saved))S.saved=o.saved.filter(Array.isArray);
     save();renderMake();$("c-iomsg").textContent="読み込みました";
   }catch(err){$("c-iomsg").textContent="読み込めませんでした。書き出した文字をそのまま貼り付けてください";}});
 
 /* ---- 起動 ---- */
 var first=!S.form;
+if(!WEB){ // ダウンロード版: 辞書の編集を各自の端末に保存する
+  D=cleanAll(S.dict);canEdit=true;
+  $("c-io-title").textContent="自分のデータを別の端末に移す";
+  $("c-io-note").textContent="きのみの所持数・保存レシピ・自分で編集した辞書・消費速度は、この端末のブラウザに保存されます。別の端末に移すときや控えを取るときは、書き出した文字をコピーして、移す先で貼り付けて読み込んでください。";
+  db={doc:function(path){var id=path.split("/")[1];return {
+    set:function(d){S.dict[id]=d;save();D=cleanAll(S.dict);refresh();return Promise.resolve();},
+    delete:function(){delete S.dict[id];save();D=cleanAll(S.dict);refresh();return Promise.resolve();}};}};
+}
 build();
 // 初回の例: サワーでLv.3を狙う、★3以上、★3のひずみ
 loadForm(S.form||{wantP:["2-1"],"f-level":"3","f-stars":"3","f-rift":"3","f-slots":"8","f-pool":"all","f-tier":"7","f-sort":"cost"});
