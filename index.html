@@ -67,6 +67,7 @@ textarea{font-family:ui-monospace,monospace;font-size:12px;min-height:90px}
 .btn.ghost{background:none;color:var(--accent);padding:5px 10px;font-size:13px}
 .btn.plain{border-color:var(--line);background:none;color:var(--ink);padding:5px 10px;font-size:13px;font-weight:600}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+summary{cursor:pointer;font-family:var(--display);font-weight:700;font-size:14px}
 .unsupported{border:1.5px solid var(--warn);color:var(--warn);border-radius:12px;padding:10px 14px;font-size:13.5px}
 .unsupported b{color:var(--ink)}
 .hint{font-size:12.5px;color:var(--muted)}
@@ -138,7 +139,7 @@ tr:last-child td{border-bottom:0}
     <button role="tab" data-tab="make">作る</button>
     <button role="tab" data-tab="berry">きのみ</button>
     <button role="tab" data-tab="power">パワー</button>
-    <button role="tab" data-tab="conf">設定</button>
+    <button role="tab" data-tab="conf" id="tab-conf" hidden>設定</button>
   </nav>
 </div></header>
 <main>
@@ -201,6 +202,12 @@ tr:last-child td{border-bottom:0}
   </div>
   <h2>保存したレシピ</h2>
   <div class="cards" id="m-saved"></div>
+  <details class="panel">
+    <summary>所持数と保存レシピを別の端末に移す</summary>
+    <p class="note">きのみの所持数と保存レシピは、この端末のブラウザに保存されます。別の端末に移すときは、書き出した文字をコピーして、移す先で貼り付けて読み込んでください。</p>
+    <textarea id="c-io" aria-label="書き出しデータ"></textarea>
+    <div class="row"><button class="btn plain" id="c-export">書き出す</button><button class="btn plain" id="c-import">貼り付けた内容を読み込む</button><span class="hint" id="c-iomsg"></span></div>
+  </details>
 </section>
 
 <section class="view" id="v-berry" hidden>
@@ -224,12 +231,16 @@ tr:last-child td{border-bottom:0}
     <div class="scroll"><table id="p-rank"><thead></thead><tbody></tbody></table></div>
     <p class="note">ひずみより★が低いドーナツは捕獲率が下がります（1つ下で0.9倍、2つ以上下で0.3倍）。</p>
   </div>
+  <p class="note">対応環境：ブラウザで使うWebアプリです。対応ブラウザは Chrome・Safari・Firefox（パソコン・スマホとも最新版）です。</p>
+  <p class="note">数値の出典：きのみの各数値とパワー抽選の仕組みは Serebii.net（Ansha's Donuts / Flavor Powers）、星の閾値と倍率は ポケモンWiki「ドーナツ」、いじげんきのみの解放時期は Game8。パワーの抽選はランダムなので、Lv.の確率は目安です。腹持ち時間は、ひずみの★ごとの消費速度（kcal／秒）の目安から計算しています。</p>
 </section>
 
 <section class="view" id="v-conf" hidden>
+  <p class="note" id="c-who"></p>
   <div class="panel">
     <h2>ハラモチの消費速度（kcal／秒）</h2>
-    <p class="note">腹持ち時間の計算に使います。初期値は攻略サイトの記載と実測報告からの目安です。実際に測った値に直してください。</p>
+    <p class="note" id="c-drain-note">腹持ち時間の計算に使います。初期値は攻略サイトの記載と実測報告からの目安です。実際に測った値に直してください。</p>
+    <span class="hint" id="c-drain-msg"></span>
     <div class="fields" id="c-drain"></div>
   </div>
   <div class="panel">
@@ -251,14 +262,6 @@ tr:last-child td{border-bottom:0}
     </div>
     <div class="cards" id="e-list"></div>
   </div>
-  <div class="panel">
-    <h2>データの引っ越し</h2>
-    <p class="note">所持数・保存レシピ・消費速度はこの端末のブラウザに保存されます（辞書の編集内容は全員共通で、ここには含まれません）。別の端末に移すときは、書き出した文字をコピーして、移す先で貼り付けて読み込んでください。</p>
-    <textarea id="c-io" aria-label="書き出しデータ"></textarea>
-    <div class="row"><button class="btn plain" id="c-export">書き出す</button><button class="btn plain" id="c-import">貼り付けた内容を読み込む</button><span class="hint" id="c-iomsg"></span></div>
-  </div>
-  <p class="note">対応環境：ブラウザで使うWebアプリです。対応ブラウザは Chrome・Safari・Firefox（パソコン・スマホとも最新版）です。</p>
-  <p class="note">数値の出典：きのみの各数値とパワー抽選の仕組みは Serebii.net（Ansha's Donuts / Flavor Powers）、星の閾値と倍率は ポケモンWiki「ドーナツ」、いじげんきのみの解放時期は Game8。パワーの抽選はランダムなので、Lv.の確率は目安です。</p>
 </section>
 </main>
 
@@ -310,6 +313,8 @@ function browserOf(ua){
 $("unsupported").hidden=!!browserOf(navigator.userAgent)&&!(navigator.brave);
 
 /* ---- 保存 ---- */
+var WEB=!!(window.claude&&window.claude.use),sharedDrain=null;
+function drain(){return sharedDrain||S.drain;}
 var KEY="za-donut-v1";
 var S={stock:{},saved:[],drain:[1,1.6,3.5,7.5,10],tab:"find",form:null,make:[]};
 try{var raw=localStorage.getItem(KEY);if(raw){var o=JSON.parse(raw);for(var k in o)if(k!=="custom")S[k]=o[k];}}catch(e){}
@@ -357,14 +362,14 @@ function cardHTML(items,r,rift,actions,wp){
   if(!pw.length)pw.push('<div class="hint">どのフレーバーも120未満なのでパワーはつきません</div>');
   var tags=(r.rainbow?'<span class="tag">ミックス</span>':"")+(r.stars<rift?'<span class="tag warn">ひずみより★が低い</span>':"");
   return '<div class="card"><div class="recipe">'+rec+"</div>"+
-   '<div class="stats"><span>'+starStr(r.stars)+" 合計"+r.total+"</span><span>プラスLv. <b>+"+r.lv+"</b></span><span>ハラモチ <b>"+r.cal+"</b>kcal</span><span>★"+rift+"のひずみで約<b>"+fmtTime(r.cal/S.drain[rift-1])+"</b></span>"+tags+"</div>"+
+   '<div class="stats"><span>'+starStr(r.stars)+" 合計"+r.total+"</span><span>プラスLv. <b>+"+r.lv+"</b></span><span>ハラモチ <b>"+r.cal+"</b>kcal</span><span>★"+rift+"のひずみで約<b>"+fmtTime(r.cal/drain()[rift-1])+"</b></span>"+tags+"</div>"+
    '<div class="flv">'+flv+'</div><div class="pw">'+pw.join("")+"</div>"+(actions?'<div class="row">'+actions+"</div>":"")+"</div>";
 }
 
 /* ---- タブ ---- */
 var TABS=["find","make","berry","power","conf"];
 function showTab(t){
-  if(TABS.indexOf(t)<0)t="find";S.tab=t;save();
+  if(TABS.indexOf(t)<0||(t==="conf"&&$("tab-conf").hidden))t="find";S.tab=t;save();
   TABS.forEach(function(x){$("v-"+x).hidden=x!==t;});
   Array.prototype.forEach.call($("tabs").children,function(b){b.setAttribute("aria-selected",b.dataset.tab===t);});
   if(t==="make")renderMake();if(t==="berry")renderBerry();if(t==="conf")renderConf();
@@ -399,8 +404,8 @@ function loadForm(o){wantP=(o.wantP||(o.want||[]).map(function(f){return f+"-0";
 var lastResults=[];
 function runSearch(){
   var q=readForm();S.form=q;save();
-  var level=+q["f-level"],minStars=+q["f-stars"],rift=+q["f-rift"],drain=S.drain[rift-1];
-  var minCal=Math.max(+q["f-cal"]||0,(+q["f-min"]||0)*60*drain),minLv=+q["f-lv"]||0,slots=+q["f-slots"],pool=q["f-pool"],tier=+q["f-tier"],sort=q["f-sort"];
+  var level=+q["f-level"],minStars=+q["f-stars"],rift=+q["f-rift"],drainRate=drain()[rift-1];
+  var minCal=Math.max(+q["f-cal"]||0,(+q["f-min"]||0)*60*drainRate),minLv=+q["f-lv"]||0,slots=+q["f-slots"],pool=q["f-pool"],tier=+q["f-tier"],sort=q["f-sort"];
   var P=B.filter(function(b){
     if(pool==="normal"&&b.kind==="hyper")return false;
     if(pool==="hyper"&&b.kind==="normal")return false;
@@ -518,7 +523,8 @@ function renderPower(){
 
 /* ---- 設定 ---- */
 function renderConf(){
-  $("c-drain").innerHTML=S.drain.map(function(v,i){return '<label class="field"><span>★'+(i+1)+'のひずみ</span><input type="number" id="c-d'+i+'" data-d="'+i+'" min="0.1" step="0.1" inputmode="decimal" value="'+v+'"></label>';}).join("");
+  $("c-who").textContent=WEB?"この設定画面はオーナーだけに表示されます。ここでの変更は、ページを開いている全員に反映されます。":"ダウンロード版の設定です。変更はこの端末のブラウザにだけ保存されます。";
+  $("c-drain").innerHTML=drain().map(function(v,i){return '<label class="field"><span>★'+(i+1)+'のひずみ</span><input type="number" id="c-d'+i+'" data-d="'+i+'" min="0.1" step="0.1" inputmode="decimal" value="'+v+'"></label>';}).join("");
   renderEdit();
 }
 function renderEdit(){
@@ -553,16 +559,19 @@ $("e-undo").addEventListener("click",function(){
   var id=$("e-target").value;if(!db||!canEdit||!D[id])return;
   db.doc("berries/"+id).delete().then(function(){$("e-msg").textContent="元に戻しました";},writeFail);
 });
-$("c-drain").addEventListener("change",function(e){var i=e.target.dataset.d;if(i==null)return;var v=+e.target.value;if(v>0){S.drain[i]=v;save();}else e.target.value=S.drain[i];});
-$("c-export").addEventListener("click",function(){var t=$("c-io");t.value=JSON.stringify({stock:S.stock,saved:S.saved,drain:S.drain});t.select();
+$("c-drain").addEventListener("change",function(e){var i=e.target.dataset.d;if(i==null)return;var v=+e.target.value;if(!(v>0)){e.target.value=drain()[i];return;}
+  if(!WEB){S.drain[i]=v;save();return;}
+  if(!db||!canEdit)return;
+  var arr=drain().slice();arr[i]=v;$("c-drain-msg").textContent="保存しています…";
+  db.doc("config/drain").set({v:arr}).then(function(){$("c-drain-msg").textContent="保存しました。全員の腹持ち時間に反映されます";},function(){$("c-drain-msg").textContent="保存できませんでした。通信状態を確かめて、もう一度入力してください";});});
+$("c-export").addEventListener("click",function(){var t=$("c-io");t.value=JSON.stringify({stock:S.stock,saved:S.saved});t.select();
   var done=function(m){$("c-iomsg").textContent=m;};
   try{navigator.clipboard.writeText(t.value).then(function(){done("コピーしました");},function(){done("上の文字を選択してコピーしてください");});}catch(err){done("上の文字を選択してコピーしてください");}});
 $("c-import").addEventListener("click",function(){
   try{var o=JSON.parse($("c-io").value);if(typeof o!=="object"||!o)throw 0;
     if(o.stock&&typeof o.stock==="object")S.stock=o.stock;
     if(Array.isArray(o.saved))S.saved=o.saved.filter(Array.isArray);
-    if(Array.isArray(o.drain)&&o.drain.length===5&&o.drain.every(function(v){return v>0;}))S.drain=o.drain;
-    save();renderConf();$("c-iomsg").textContent="読み込みました";
+    save();renderMake();$("c-iomsg").textContent="読み込みました";
   }catch(err){$("c-iomsg").textContent="読み込めませんでした。書き出した文字をそのまま貼り付けてください";}});
 
 /* ---- 起動 ---- */
@@ -570,6 +579,7 @@ var first=!S.form;
 build();
 // 初回の例: サワーでLv.3を狙う、★3以上、★3のひずみ
 loadForm(S.form||{wantP:["2-1"],"f-level":"3","f-stars":"3","f-rift":"3","f-slots":"8","f-pool":"all","f-tier":"7","f-sort":"cost"});
+$("tab-conf").hidden=WEB; // Web版はオーナーと確認できるまで出さない
 renderFlavorChips();renderPower();showTab(S.tab);runSearch();
 /* 共有辞書: 読むのは全員、書けるのはオーナーだけ */
 function refresh(){build();if(S.tab==="make")renderMake();if(S.tab==="berry")renderBerry();if(S.tab==="conf"){renderEdit();fillEdit();}runSearch();}
@@ -580,7 +590,12 @@ if(window.claude&&window.claude.use){
       var n={};snap.docs.forEach(function(doc){var c=clean(doc.data());if(c&&/^[nhc]\d+$/.test(doc.id))n[doc.id]=c;});
       D=n;refresh();
     },function(){});
-    window.claude.use("user").then(function(u){return u?u.isOwner():false;}).then(function(ok){canEdit=!!ok;renderEdit();fillEdit();},function(){});
+    window.claude.use("user").then(function(u){return u?u.isOwner():false;}).then(function(ok){canEdit=!!ok;$("tab-conf").hidden=!canEdit;if(!canEdit&&S.tab==="conf")showTab("find");renderEdit();fillEdit();},function(){});
+    d.doc("config/drain").onSnapshot(function(snap){
+      var v=snap.exists&&snap.data()&&snap.data().v;
+      sharedDrain=Array.isArray(v)&&v.length===5&&v.every(function(x){return typeof x==="number"&&x>0&&x<1000;})?v.slice():null;
+      if(S.tab==="conf")renderConf();if(S.tab==="make")renderMake();runSearch();
+    },function(){});
   },function(){});
 }
 if(first)$("f-status").textContent="例：どうぐパワーLv.3を狙う★3以上のレシピ。ほしいパワーを選んで逆引きしてください";
