@@ -102,6 +102,13 @@ th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:
 thead th{font-size:11.5px;color:var(--muted);background:var(--sunken);cursor:pointer;user-select:none}
 thead th:first-child{background:var(--sunken)}
 thead th[aria-sort]{color:var(--accent)}
+.scroll.tall{max-height:min(70vh,640px);overflow:auto;overscroll-behavior:contain}
+.scroll.tall thead th{position:sticky;top:0;z-index:2;box-shadow:0 1px 0 var(--line)}
+.scroll.tall thead th:first-child{z-index:3}
+.scroll.tall tbody td:first-child{z-index:1}
+thead th[class^="f"]{color:var(--fc);font-weight:700;font-size:13px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px}
+.legend span{color:var(--fc);font-weight:700}
 td.z{color:var(--line)}
 td.v{color:var(--fc);font-weight:700}
 tr:last-child td{border-bottom:0}
@@ -198,8 +205,9 @@ tr:last-child td{border-bottom:0}
     <div class="chips" id="b-kind"></div>
     <input type="text" id="b-q" placeholder="名前でさがす" style="flex:1 1 140px;width:auto">
   </div>
-  <p class="note">見出しをタップで並べ替え。「所持」に数を入れると、逆引きで「所持数を入れたものだけ」を選んだときに手持ちの範囲で探します。</p>
-  <div class="scroll"><table id="b-table"><thead></thead><tbody></tbody></table></div>
+  <p class="note">見出しは表をスクロールしても上に残ります。タップで並べ替え。「所持」に数を入れると、逆引きで「所持数を入れたものだけ」を選んだときに手持ちの範囲で探します。</p>
+  <div class="legend" aria-label="見出しの略字"><span class="f0">甘＝スイート</span><span class="f1">辛＝スパイシー</span><span class="f2">酸＝サワー</span><span class="f3">苦＝ビター</span><span class="f4">爽＝フレッシュ</span></div>
+  <div class="scroll tall"><table id="b-table"><thead></thead><tbody></tbody></table></div>
 </section>
 
 <section class="view" id="v-power" hidden>
