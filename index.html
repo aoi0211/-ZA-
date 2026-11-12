@@ -64,6 +64,8 @@ textarea{font-family:ui-monospace,monospace;font-size:12px;min-height:90px}
 .btn.ghost{background:none;color:var(--accent);padding:5px 10px;font-size:13px}
 .btn.plain{border-color:var(--line);background:none;color:var(--ink);padding:5px 10px;font-size:13px;font-weight:600}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.unsupported{border:1.5px solid var(--warn);color:var(--warn);border-radius:12px;padding:10px 14px;font-size:13.5px}
+.unsupported b{color:var(--ink)}
 .hint{font-size:12.5px;color:var(--muted)}
 .hint b{color:var(--ink)}
 /* レシピカード */
@@ -130,6 +132,7 @@ tr:last-child td{border-bottom:0}
   </nav>
 </div></header>
 <main>
+<p class="unsupported" id="unsupported" role="alert" hidden>このブラウザは対応していません。<b>Chrome・Safari・Firefox</b> のいずれかで開いてください。このままでも表示はされますが、動作は確認していません。</p>
 
 <section class="view" id="v-find">
   <div class="panel">
@@ -243,6 +246,7 @@ tr:last-child td{border-bottom:0}
     <textarea id="c-io" aria-label="書き出しデータ"></textarea>
     <div class="row"><button class="btn plain" id="c-export">書き出す</button><button class="btn plain" id="c-import">貼り付けた内容を読み込む</button><span class="hint" id="c-iomsg"></span></div>
   </div>
+  <p class="note">対応環境：ブラウザで使うWebアプリです。対応ブラウザは Chrome・Safari・Firefox（パソコン・スマホとも最新版）です。</p>
   <p class="note">数値の出典：きのみの各数値とパワー抽選の仕組みは Serebii.net（Ansha's Donuts / Flavor Powers）、星の閾値と倍率は ポケモンWiki「ドーナツ」、いじげんきのみの解放時期は Game8。パワーの抽選はランダムなので、Lv.の確率は目安です。</p>
 </section>
 </main>
@@ -283,6 +287,16 @@ var POWERS=[
   ["ほかくパワー：タイプ／すべて","捕獲率が上がる",["+10%","+20%","+30%"]]]
 ];
 var FUSE=["色違い・オヤブン・サイズ厳選","攻撃・技の威力","道具集め・メガシンカ","防御・耐久","捕獲・遭遇"];
+
+/* ---- 対応ブラウザ: Chrome / Safari / Firefox のみ ---- */
+function browserOf(ua){
+  if(/Firefox\/|FxiOS\//.test(ua))return "firefox";
+  if(/Edg(e|A|iOS)?\/|OPR\/|OPiOS\/|Opera|SamsungBrowser|YaBrowser|Vivaldi|UCBrowser|DuckDuckGo|Whale\/|MiuiBrowser|HuaweiBrowser|Trident|MSIE/.test(ua))return "";
+  if(/Chrome\/|Chromium\/|CriOS\//.test(ua))return "chrome";
+  if(/Safari\/|AppleWebKit\//.test(ua))return "safari";
+  return "";
+}
+$("unsupported").hidden=!!browserOf(navigator.userAgent)&&!(navigator.brave);
 
 /* ---- 保存 ---- */
 var KEY="za-donut-v1";
