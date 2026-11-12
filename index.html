@@ -219,24 +219,27 @@ tr:last-child td{border-bottom:0}
     <div class="fields" id="c-drain"></div>
   </div>
   <div class="panel">
-    <h2>きのみを追加する</h2>
-    <p class="note">新しいきのみや、数値を自分で確かめたきのみを登録できます。登録したきのみは逆引き・作る・きのみ辞典のすべてで使えます。</p>
-    <div class="fields">
-      <label class="field"><span>名前</span><input type="text" id="c-name" placeholder="例 いじげん○○のみ"></label>
-      <label class="field"><span>スイート</span><input type="number" id="c-f0" min="0" value="0" inputmode="numeric"></label>
-      <label class="field"><span>スパイシー</span><input type="number" id="c-f1" min="0" value="0" inputmode="numeric"></label>
-      <label class="field"><span>サワー</span><input type="number" id="c-f2" min="0" value="0" inputmode="numeric"></label>
-      <label class="field"><span>ビター</span><input type="number" id="c-f3" min="0" value="0" inputmode="numeric"></label>
-      <label class="field"><span>フレッシュ</span><input type="number" id="c-f4" min="0" value="0" inputmode="numeric"></label>
-      <label class="field"><span>プラスLv.</span><input type="number" id="c-lv" min="0" value="1" inputmode="numeric"></label>
-      <label class="field"><span>カロリー</span><input type="number" id="c-cal" min="0" value="60" inputmode="numeric"></label>
+    <h2>辞書の編集・追加 <span class="tag" id="e-badge">管理者のみ</span></h2>
+    <p class="note" id="e-note">辞書（きのみの数値）を編集・追加できるのは、このページのオーナーと、オーナーが編集者に指定した人だけです。ほかの人には読み取り専用で、変更内容は全員に反映されます。</p>
+    <div id="e-form" hidden>
+      <div class="fields">
+        <label class="field" style="grid-column:1/-1"><span>対象のきのみ</span><select id="e-target"></select></label>
+        <label class="field" style="grid-column:1/-1"><span>名前</span><input type="text" id="e-name" placeholder="例 いじげん○○のみ"></label>
+        <label class="field"><span>スイート</span><input type="number" id="e-f0" min="0" value="0" inputmode="numeric"></label>
+        <label class="field"><span>スパイシー</span><input type="number" id="e-f1" min="0" value="0" inputmode="numeric"></label>
+        <label class="field"><span>サワー</span><input type="number" id="e-f2" min="0" value="0" inputmode="numeric"></label>
+        <label class="field"><span>ビター</span><input type="number" id="e-f3" min="0" value="0" inputmode="numeric"></label>
+        <label class="field"><span>フレッシュ</span><input type="number" id="e-f4" min="0" value="0" inputmode="numeric"></label>
+        <label class="field"><span>プラスLv.</span><input type="number" id="e-lv" min="0" value="1" inputmode="numeric"></label>
+        <label class="field"><span>カロリー</span><input type="number" id="e-cal" min="0" value="60" inputmode="numeric"></label>
+      </div>
+      <div class="row" style="margin-top:12px"><button class="btn" id="e-save">保存する</button><button class="btn plain" id="e-undo" hidden>元に戻す</button><span class="hint" id="e-msg"></span></div>
     </div>
-    <div class="row"><button class="btn" id="c-add">追加する</button><span class="hint" id="c-msg"></span></div>
-    <div class="cards" id="c-list"></div>
+    <div class="cards" id="e-list"></div>
   </div>
   <div class="panel">
     <h2>データの引っ越し</h2>
-    <p class="note">所持数・追加したきのみ・保存レシピ・消費速度はこの端末のブラウザに保存されます。別の端末に移すときは、書き出した文字をコピーして、移す先で貼り付けて読み込んでください。</p>
+    <p class="note">所持数・保存レシピ・消費速度はこの端末のブラウザに保存されます（辞書の編集内容は全員共通で、ここには含まれません）。別の端末に移すときは、書き出した文字をコピーして、移す先で貼り付けて読み込んでください。</p>
     <textarea id="c-io" aria-label="書き出しデータ"></textarea>
     <div class="row"><button class="btn plain" id="c-export">書き出す</button><button class="btn plain" id="c-import">貼り付けた内容を読み込む</button><span class="hint" id="c-iomsg"></span></div>
   </div>
@@ -283,17 +286,20 @@ var FUSE=["色違い・オヤブン・サイズ厳選","攻撃・技の威力","
 
 /* ---- 保存 ---- */
 var KEY="za-donut-v1";
-var S={stock:{},custom:[],saved:[],drain:[1,1.6,3.5,7.5,10],tab:"find",form:null,make:[]};
-try{var raw=localStorage.getItem(KEY);if(raw){var o=JSON.parse(raw);for(var k in o)S[k]=o[k];}}catch(e){}
+var S={stock:{},saved:[],drain:[1,1.6,3.5,7.5,10],tab:"find",form:null,make:[]};
+try{var raw=localStorage.getItem(KEY);if(raw){var o=JSON.parse(raw);for(var k in o)if(k!=="custom")S[k]=o[k];}}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 
 /* ---- きのみ ---- */
-var B=[],BY={};
+var B=[],BY={},D={},canEdit=false,db=null;
+function num(v){v=Math.floor(+v);return v>0&&isFinite(v)?Math.min(v,9999):0;}
+function clean(d){if(!d||!Array.isArray(d.f)||d.f.length!==5)return null;return {name:String(d.name||"").slice(0,30),f:d.f.map(num),lv:num(d.lv),cal:num(d.cal)};}
 function build(){
   B=[];BY={};
   NAMES.forEach(function(n,i){var r=NORMAL[i];B.push({id:"n"+i,name:n+"のみ",f:r.slice(0,5),lv:r[5],cal:r[6],kind:"normal",tier:0});});
   NAMES.forEach(function(n,i){var r=HYPER[i];B.push({id:"h"+i,name:"いじげん"+n+"のみ",f:r.slice(0,5),lv:r[5],cal:r[6],kind:"hyper",tier:HTIER[i]});});
-  S.custom.forEach(function(c){B.push({id:c.id,name:c.name,f:c.f.slice(),lv:c.lv,cal:c.cal,kind:"custom",tier:0});});
+  B.forEach(function(b){var d=D[b.id];if(d){b.f=d.f.slice();b.lv=d.lv;b.cal=d.cal;b.edited=true;}});
+  Object.keys(D).sort().forEach(function(id){var d=D[id];if(id[0]==="c"&&d.name)B.push({id:id,name:d.name,f:d.f.slice(),lv:d.lv,cal:d.cal,kind:"custom",tier:0});});
   B.forEach(function(b){b.sum=b.f[0]+b.f[1]+b.f[2]+b.f[3]+b.f[4];b.top=b.f.indexOf(Math.max.apply(null,b.f));b.cost=b.kind==="hyper"?TCOST[b.tier]:b.kind==="custom"?5:1;BY[b.id]=b;});
 }
 function short(b){return b.name.replace(/のみ$/,"");}
@@ -421,7 +427,7 @@ function renderMake(){
   $("m-slots").innerHTML=h;
   var rift=+$("m-rift").value;
   $("m-result").innerHTML=S.make.length>=3?cardHTML(groupIds(S.make),evalRecipe(groupIds(S.make)),rift,""):'<p class="hint">きのみを3個以上選ぶと結果が出ます（最大8個）。下の一覧をタップして追加します。</p>';
-  $("m-kind").innerHTML=[["hyper","いじげん"],["normal","通常"],["custom","追加分"]].filter(function(k){return k[0]!=="custom"||S.custom.length;}).map(function(k){return '<button class="chip" data-k="'+k[0]+'" aria-pressed="'+(mKind===k[0])+'">'+k[1]+"</button>";}).join("");
+  $("m-kind").innerHTML=[["hyper","いじげん"],["normal","通常"],["custom","追加分"]].filter(function(k){return k[0]!=="custom"||B.some(function(b){return b.kind==="custom";});}).map(function(k){return '<button class="chip" data-k="'+k[0]+'" aria-pressed="'+(mKind===k[0])+'">'+k[1]+"</button>";}).join("");
   var full=S.make.length>=8;
   $("m-picker").innerHTML=B.filter(function(b){return b.kind===mKind;}).map(function(b){
     var fs=b.f.map(function(v,i){return v?FLS[i]+v:"";}).filter(Boolean).join(" ");
@@ -451,9 +457,9 @@ function renderBerry(){
   var list=B.filter(function(b){return (bKind==="all"||b.kind===bKind||(b.kind==="custom"))&&(!q||b.name.indexOf(q)>=0);});
   if(bSort)list.sort(function(x,y){var p=bVal(x,bSort),r=bVal(y,bSort);return (p<r?-1:p>r?1:0)*bDir;});
   $("b-table").tBodies[0].innerHTML=list.map(function(b){
-    return "<tr><td>"+esc(short(b))+(b.kind==="custom"?' <span class="tag">追加</span>':"")+"</td>"+
+    return "<tr><td>"+esc(short(b))+(b.kind==="custom"?' <span class="tag">追加</span>':b.edited?' <span class="tag">修正</span>':"")+"</td>"+
       b.f.map(function(v,i){return '<td class="'+(v?"v f"+i:"z")+'">'+v+"</td>";}).join("")+
-      "<td>"+b.sum+"</td><td>+"+b.lv+"</td><td>"+b.cal+"</td><td>"+(b.kind==="hyper"?TIERS[b.tier]:b.kind==="normal"?"きのみショップ":"自分で追加")+"</td>"+
+      "<td>"+b.sum+"</td><td>+"+b.lv+"</td><td>"+b.cal+"</td><td>"+(b.kind==="hyper"?TIERS[b.tier]:b.kind==="normal"?"きのみショップ":"管理者が追加")+"</td>"+
       '<td><span class="stock"><button data-s="-1" data-id="'+b.id+'" aria-label="減らす">−</button><input type="number" min="0" inputmode="numeric" data-id="'+b.id+'" value="'+(S.stock[b.id]||0)+'" aria-label="'+esc(b.name)+'の所持数"><button data-s="1" data-id="'+b.id+'" aria-label="増やす">＋</button></span></td></tr>';}).join("");
 }
 $("b-kind").addEventListener("click",function(e){var b=e.target.closest("button");if(b){bKind=b.dataset.k;renderBerry();}});
@@ -476,26 +482,50 @@ function renderPower(){
 /* ---- 設定 ---- */
 function renderConf(){
   $("c-drain").innerHTML=S.drain.map(function(v,i){return '<label class="field"><span>★'+(i+1)+'のひずみ</span><input type="number" id="c-d'+i+'" data-d="'+i+'" min="0.1" step="0.1" inputmode="decimal" value="'+v+'"></label>';}).join("");
-  $("c-list").innerHTML=S.custom.map(function(c,x){return '<div class="row"><b>'+esc(c.name)+'</b><span class="hint">'+c.f.map(function(v,i){return v?FL[i]+v:"";}).filter(Boolean).join(" ")+" / +"+c.lv+" / "+c.cal+'kcal</span><button class="btn plain" data-cdel="'+x+'">削除</button></div>';}).join("");
+  renderEdit();
 }
+function renderEdit(){
+  $("e-form").hidden=!canEdit;
+  $("e-badge").textContent=canEdit?"編集できます":"管理者のみ";
+  if(!db)$("e-note").textContent="辞書の編集・追加は、公開ページをオーナーまたは編集者として開いたときだけ使えます。この画面では読み取り専用です。";
+  var cur=$("e-target").value;
+  $("e-target").innerHTML='<option value="">＋ 新しいきのみを追加</option>'+B.map(function(b){return '<option value="'+b.id+'">'+esc(b.name)+(b.kind==="custom"?"（追加）":b.edited?"（修正済み）":"")+"</option>";}).join("");
+  if(BY[cur])$("e-target").value=cur;
+  var ch=B.filter(function(b){return b.kind==="custom"||b.edited;});
+  $("e-list").innerHTML=ch.length?'<p class="lbl">初期データから変更されているきのみ</p>'+ch.map(function(b){return '<div class="row"><b>'+esc(b.name)+'</b><span class="tag">'+(b.kind==="custom"?"追加":"修正")+'</span><span class="hint">'+b.f.map(function(v,i){return v?FL[i]+v:"";}).filter(Boolean).join(" ")+" / +"+b.lv+" / "+b.cal+"kcal</span></div>";}).join(""):"";
+}
+function fillEdit(){
+  var b=BY[$("e-target").value];
+  $("e-name").value=b?b.name:"";$("e-name").disabled=!!b&&b.kind!=="custom";
+  for(var i=0;i<5;i++)$("e-f"+i).value=b?b.f[i]:0;
+  $("e-lv").value=b?b.lv:1;$("e-cal").value=b?b.cal:60;
+  $("e-undo").hidden=!(b&&(b.kind==="custom"||b.edited));$("e-undo").textContent=b&&b.kind==="custom"?"このきのみを削除":"初期値に戻す";$("e-msg").textContent="";
+}
+$("e-target").addEventListener("change",fillEdit);
+function writeFail(e){$("e-msg").textContent=canEdit?"保存できませんでした。通信状態を確かめて、もう一度押してください":"編集する権限がありません";}
+$("e-save").addEventListener("click",function(){
+  if(!db||!canEdit)return;
+  var id=$("e-target").value,name=$("e-name").value.trim();
+  if(!id){if(!name){$("e-msg").textContent="名前を入れてください";return;}
+    if(B.some(function(b){return b.name===name;})){$("e-msg").textContent="同じ名前のきのみがあります";return;}id="c"+Date.now();}
+  var doc={name:BY[id]&&BY[id].kind!=="custom"?BY[id].name:name,f:[0,1,2,3,4].map(function(i){return num($("e-f"+i).value);}),lv:num($("e-lv").value),cal:num($("e-cal").value)};
+  $("e-msg").textContent="保存しています…";
+  db.doc("berries/"+id).set(doc).then(function(){$("e-target").value=BY[id]?id:"";$("e-msg").textContent="「"+doc.name+"」を保存しました。全員の辞書に反映されます";},writeFail);
+});
+$("e-undo").addEventListener("click",function(){
+  var id=$("e-target").value;if(!db||!canEdit||!D[id])return;
+  db.doc("berries/"+id).delete().then(function(){$("e-msg").textContent="元に戻しました";},writeFail);
+});
 $("c-drain").addEventListener("change",function(e){var i=e.target.dataset.d;if(i==null)return;var v=+e.target.value;if(v>0){S.drain[i]=v;save();}else e.target.value=S.drain[i];});
-$("c-add").addEventListener("click",function(){
-  var name=$("c-name").value.trim(),f=[0,1,2,3,4].map(function(i){return Math.max(0,Math.floor(+$("c-f"+i).value||0));});
-  if(!name){$("c-msg").textContent="名前を入れてください";return;}
-  if(B.some(function(b){return b.name===name;})){$("c-msg").textContent="同じ名前のきのみがあります";return;}
-  S.custom.push({id:"c"+Date.now(),name:name,f:f,lv:Math.max(0,Math.floor(+$("c-lv").value||0)),cal:Math.max(0,Math.floor(+$("c-cal").value||0))});
-  save();build();renderConf();$("c-name").value="";$("c-msg").textContent="「"+name+"」を追加しました";});
-$("c-list").addEventListener("click",function(e){var b=e.target.closest("[data-cdel]");if(b){S.custom.splice(+b.dataset.cdel,1);save();build();renderConf();}});
-$("c-export").addEventListener("click",function(){var t=$("c-io");t.value=JSON.stringify({stock:S.stock,custom:S.custom,saved:S.saved,drain:S.drain});t.select();
+$("c-export").addEventListener("click",function(){var t=$("c-io");t.value=JSON.stringify({stock:S.stock,saved:S.saved,drain:S.drain});t.select();
   var done=function(m){$("c-iomsg").textContent=m;};
   try{navigator.clipboard.writeText(t.value).then(function(){done("コピーしました");},function(){done("上の文字を選択してコピーしてください");});}catch(err){done("上の文字を選択してコピーしてください");}});
 $("c-import").addEventListener("click",function(){
   try{var o=JSON.parse($("c-io").value);if(typeof o!=="object"||!o)throw 0;
     if(o.stock&&typeof o.stock==="object")S.stock=o.stock;
-    if(Array.isArray(o.custom))S.custom=o.custom.filter(function(c){return c&&c.id&&c.name&&Array.isArray(c.f)&&c.f.length===5;});
     if(Array.isArray(o.saved))S.saved=o.saved.filter(Array.isArray);
     if(Array.isArray(o.drain)&&o.drain.length===5&&o.drain.every(function(v){return v>0;}))S.drain=o.drain;
-    save();build();renderConf();$("c-iomsg").textContent="読み込みました";
+    save();renderConf();$("c-iomsg").textContent="読み込みました";
   }catch(err){$("c-iomsg").textContent="読み込めませんでした。書き出した文字をそのまま貼り付けてください";}});
 
 /* ---- 起動 ---- */
@@ -504,6 +534,18 @@ build();
 // 初回の例: サワーでLv.3を狙う、★3以上、★3のひずみ
 loadForm(S.form||{want:[2],"f-level":"3","f-stars":"3","f-rift":"3","f-slots":"8","f-pool":"all","f-tier":"7","f-sort":"cost"});
 renderFlavorChips();renderPower();showTab(S.tab);runSearch();
+/* 共有辞書: 読むのは全員、書けるのは管理者(オーナー・編集者)だけ */
+function refresh(){build();if(S.tab==="make")renderMake();if(S.tab==="berry")renderBerry();if(S.tab==="conf"){renderEdit();fillEdit();}runSearch();}
+if(window.claude&&window.claude.use){
+  window.claude.use("db").then(function(d){
+    if(!d)return;db=d;renderEdit();
+    d.collection("berries").onSnapshot(function(snap){
+      var n={};snap.docs.forEach(function(doc){var c=clean(doc.data());if(c&&/^[nhc]\d+$/.test(doc.id))n[doc.id]=c;});
+      D=n;refresh();
+    },function(){});
+    window.claude.use("user").then(function(u){return u?u.canEdit():false;}).then(function(ok){canEdit=!!ok;renderEdit();fillEdit();},function(){});
+  },function(){});
+}
 if(first)$("f-status").textContent="例：サワーでLv.3を狙う★3以上のレシピ。条件を変えて逆引きしてください";
 })();
 </script>
