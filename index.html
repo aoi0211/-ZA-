@@ -222,8 +222,8 @@ tr:last-child td{border-bottom:0}
     <div class="fields" id="c-drain"></div>
   </div>
   <div class="panel">
-    <h2>辞書の編集・追加 <span class="tag" id="e-badge">管理者のみ</span></h2>
-    <p class="note" id="e-note">辞書（きのみの数値）を編集・追加できるのは、このページのオーナーと、オーナーが編集者に指定した人だけです。ほかの人には読み取り専用で、変更内容は全員に反映されます。</p>
+    <h2>辞書の編集・追加 <span class="tag" id="e-badge">オーナーのみ</span></h2>
+    <p class="note" id="e-note">辞書は最初から全データが入った完成状態で、使う人が何かを追加する必要はありません。数値の修正やきのみの追加ができるのは、このページのオーナーだけです。オーナーが更新すると、開いている全員の辞書に反映されます。</p>
     <div id="e-form" hidden>
       <div class="fields">
         <label class="field" style="grid-column:1/-1"><span>対象のきのみ</span><select id="e-target"></select></label>
@@ -473,7 +473,7 @@ function renderBerry(){
   $("b-table").tBodies[0].innerHTML=list.map(function(b){
     return "<tr><td>"+esc(short(b))+(b.kind==="custom"?' <span class="tag">追加</span>':b.edited?' <span class="tag">修正</span>':"")+"</td>"+
       b.f.map(function(v,i){return '<td class="'+(v?"v f"+i:"z")+'">'+v+"</td>";}).join("")+
-      "<td>"+b.sum+"</td><td>+"+b.lv+"</td><td>"+b.cal+"</td><td>"+(b.kind==="hyper"?TIERS[b.tier]:b.kind==="normal"?"きのみショップ":"管理者が追加")+"</td>"+
+      "<td>"+b.sum+"</td><td>+"+b.lv+"</td><td>"+b.cal+"</td><td>"+(b.kind==="hyper"?TIERS[b.tier]:b.kind==="normal"?"きのみショップ":"オーナーが追加")+"</td>"+
       '<td><span class="stock"><button data-s="-1" data-id="'+b.id+'" aria-label="減らす">−</button><input type="number" min="0" inputmode="numeric" data-id="'+b.id+'" value="'+(S.stock[b.id]||0)+'" aria-label="'+esc(b.name)+'の所持数"><button data-s="1" data-id="'+b.id+'" aria-label="増やす">＋</button></span></td></tr>';}).join("");
 }
 $("b-kind").addEventListener("click",function(e){var b=e.target.closest("button");if(b){bKind=b.dataset.k;renderBerry();}});
@@ -500,8 +500,8 @@ function renderConf(){
 }
 function renderEdit(){
   $("e-form").hidden=!canEdit;
-  $("e-badge").textContent=canEdit?"編集できます":"管理者のみ";
-  if(!db)$("e-note").textContent="辞書の編集・追加は、公開ページをオーナーまたは編集者として開いたときだけ使えます。この画面では読み取り専用です。";
+  $("e-badge").textContent=canEdit?"編集できます":"オーナーのみ";
+  if(!db)$("e-note").textContent="辞書は全データ入りの完成状態です。更新できるのは公開ページのオーナーだけで、この画面では読み取り専用です。";
   var cur=$("e-target").value;
   $("e-target").innerHTML='<option value="">＋ 新しいきのみを追加</option>'+B.map(function(b){return '<option value="'+b.id+'">'+esc(b.name)+(b.kind==="custom"?"（追加）":b.edited?"（修正済み）":"")+"</option>";}).join("");
   if(BY[cur])$("e-target").value=cur;
@@ -548,7 +548,7 @@ build();
 // 初回の例: サワーでLv.3を狙う、★3以上、★3のひずみ
 loadForm(S.form||{want:[2],"f-level":"3","f-stars":"3","f-rift":"3","f-slots":"8","f-pool":"all","f-tier":"7","f-sort":"cost"});
 renderFlavorChips();renderPower();showTab(S.tab);runSearch();
-/* 共有辞書: 読むのは全員、書けるのは管理者(オーナー・編集者)だけ */
+/* 共有辞書: 読むのは全員、書けるのはオーナーだけ */
 function refresh(){build();if(S.tab==="make")renderMake();if(S.tab==="berry")renderBerry();if(S.tab==="conf"){renderEdit();fillEdit();}runSearch();}
 if(window.claude&&window.claude.use){
   window.claude.use("db").then(function(d){
@@ -557,7 +557,7 @@ if(window.claude&&window.claude.use){
       var n={};snap.docs.forEach(function(doc){var c=clean(doc.data());if(c&&/^[nhc]\d+$/.test(doc.id))n[doc.id]=c;});
       D=n;refresh();
     },function(){});
-    window.claude.use("user").then(function(u){return u?u.canEdit():false;}).then(function(ok){canEdit=!!ok;renderEdit();fillEdit();},function(){});
+    window.claude.use("user").then(function(u){return u?u.isOwner():false;}).then(function(ok){canEdit=!!ok;renderEdit();fillEdit();},function(){});
   },function(){});
 }
 if(first)$("f-status").textContent="例：サワーでLv.3を狙う★3以上のレシピ。条件を変えて逆引きしてください";
