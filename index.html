@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--ARTIFACT-START-->
+<title>ZAドーナツ辞典</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&display=swap">
+<style>
+/* レイアウト: 上に固定タブ、その下に1カラムの作業面。操作(条件)→結果の順に縦に並べ、片手で使える幅を基準にする */
+:root{
+  --bg:#f5f2fb; --surface:#ffffff; --sunken:#ece7f6; --ink:#231a3a; --muted:#665e7d; --line:#ddd5ec;
+  --accent:#b92d78; --accent-ink:#ffffff; --accent-soft:#f8dceb;
+  --sweet:#d2438a; --spicy:#cf4526; --sour:#a87c00; --bitter:#4a5bc4; --fresh:#16885d;
+  --warn:#9a5b00;
+  --display:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;
+  --body:system-ui,-apple-system,"Hiragino Sans","Yu Gothic UI","Noto Sans JP",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#161127; --surface:#211a38; --sunken:#1b1530; --ink:#efeaf9; --muted:#a69dc0; --line:#392f58;
+    --accent:#f272b4; --accent-ink:#22081a; --accent-soft:#4a2140;
+    --sweet:#f77fb8; --spicy:#ff8a6b; --sour:#e6bd3c; --bitter:#93a1ff; --fresh:#5fd3a2;
+    --warn:#e6b25a; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#161127; --surface:#211a38; --sunken:#1b1530; --ink:#efeaf9; --muted:#a69dc0; --line:#392f58;
+  --accent:#f272b4; --accent-ink:#22081a; --accent-soft:#4a2140;
+  --sweet:#f77fb8; --spicy:#ff8a6b; --sour:#e6bd3c; --bitter:#93a1ff; --fresh:#5fd3a2;
+  --warn:#e6b25a; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar{max-width:960px;margin:0 auto;padding-block:8px 0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-family:var(--display);font-size:18px;margin:0 0 6px;font-weight:700;letter-spacing:.02em}
+h1 small{font-family:var(--body);font-weight:400;font-size:12px;color:var(--muted);margin-left:8px}
+nav{display:flex;gap:2px}
+nav button{flex:1;min-width:0;background:none;border:0;border-bottom:3px solid transparent;padding:8px 2px;font:inherit;font-family:var(--display);font-weight:700;font-size:14px;color:var(--muted);cursor:pointer}
+nav button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+main{max-width:960px;margin:0 auto;padding-block:16px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
+section.view{display:flex;flex-direction:column;gap:16px}
+h2{font-family:var(--display);font-size:16px;margin:0;text-wrap:balance}
+p{margin:0}
+.note{color:var(--muted);font-size:12.5px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 12px}
+.field{display:flex;flex-direction:column;gap:3px;min-width:0}
+.field>span,.lbl{font-size:12px;color:var(--muted);font-weight:600}
+select,input[type=number],input[type=text],textarea{font:inherit;color:var(--ink);background:var(--sunken);border:1px solid var(--line);border-radius:8px;padding:7px 8px;width:100%;min-width:0}
+textarea{font-family:ui-monospace,monospace;font-size:12px;min-height:90px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:5px 12px;font:inherit;font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{border-color:var(--fc,var(--accent));background:var(--fc,var(--accent));color:var(--surface);font-weight:700}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--fc);flex:none}
+.chip[aria-pressed="true"] .dot{background:var(--surface)}
+.f0{--fc:var(--sweet)}.f1{--fc:var(--spicy)}.f2{--fc:var(--sour)}.f3{--fc:var(--bitter)}.f4{--fc:var(--fresh)}
+.btn{font:inherit;font-weight:700;border-radius:10px;border:1.5px solid var(--accent);background:var(--accent);color:var(--accent-ink);padding:9px 16px;cursor:pointer}
+.btn.ghost{background:none;color:var(--accent);padding:5px 10px;font-size:13px}
+.btn.plain{border-color:var(--line);background:none;color:var(--ink);padding:5px 10px;font-size:13px;font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.hint{font-size:12.5px;color:var(--muted)}
+.hint b{color:var(--ink)}
+/* レシピカード */
+.cards{display:flex;flex-direction:column;gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.recipe{font-family:var(--display);font-weight:700;font-size:15.5px;display:flex;flex-wrap:wrap;gap:4px 12px}
+.recipe i{font-style:normal;color:var(--accent)}
+.stats{display:flex;flex-wrap:wrap;gap:6px 14px;font-variant-numeric:tabular-nums;font-size:13.5px}
+.stats b{font-size:15px}
+.stars{color:var(--accent);letter-spacing:1px}
+.stars s{text-decoration:none;color:var(--line)}
+.flv{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.flv div{min-width:0;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.flv .meter{height:6px;border-radius:3px;background:var(--sunken);overflow:hidden;margin-top:2px}
+.flv .meter u{display:block;height:100%;background:var(--fc);border-radius:3px}
+.flv b{color:var(--fc);font-size:13px}
+.pw{font-size:12.5px;display:flex;flex-direction:column;gap:2px}
+.pw span{color:var(--fc);font-weight:700}
+.tag{font-size:11px;border-radius:6px;padding:1px 6px;background:var(--accent-soft);color:var(--accent);font-weight:700;white-space:nowrap}
+.tag.warn{background:none;border:1px solid var(--warn);color:var(--warn)}
+/* 作る */
+.slots{display:flex;flex-wrap:wrap;gap:6px;min-height:36px}
+.slot{border:1.5px solid var(--fc,var(--line));border-radius:10px;padding:4px 8px;background:var(--surface);font:inherit;font-size:13px;color:var(--ink);cursor:pointer}
+.slot.empty{border-style:dashed;color:var(--muted);cursor:default}
+.picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:6px}
+.pick{font:inherit;font-size:12.5px;text-align:left;border:1px solid var(--line);border-left:5px solid var(--fc,var(--line));border-radius:8px;background:var(--surface);color:var(--ink);padding:5px 7px;cursor:pointer;min-width:0;line-height:1.35}
+.pick small{display:block;color:var(--muted);font-size:10.5px;font-variant-numeric:tabular-nums}
+.pick:disabled{opacity:.4;cursor:default}
+/* 表 */
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--surface)}
+thead th{font-size:11.5px;color:var(--muted);background:var(--sunken);cursor:pointer;user-select:none}
+thead th:first-child{background:var(--sunken)}
+thead th[aria-sort]{color:var(--accent)}
+td.z{color:var(--line)}
+td.v{color:var(--fc);font-weight:700}
+tr:last-child td{border-bottom:0}
+.stock{display:inline-flex;align-items:center;gap:2px}
+.stock button{width:26px;height:26px;border-radius:6px;border:1px solid var(--line);background:var(--sunken);color:var(--ink);font:inherit;cursor:pointer}
+.stock input{width:44px;text-align:center;padding:3px}
+.plist{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.pgroup{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--fc);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.pgroup h3{margin:0;font-family:var(--display);font-size:15px;color:var(--fc)}
+.pgroup dl{margin:0;display:flex;flex-direction:column;gap:8px}
+.pgroup dt{font-weight:700;font-size:13.5px}
+.pgroup dd{margin:0;font-size:12.5px;color:var(--muted)}
+.lv{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:2px;color:var(--ink);font-variant-numeric:tabular-nums}
+.lv span{background:var(--sunken);border-radius:6px;padding:2px 6px}
+@media (prefers-reduced-motion:no-preference){.card{animation:in .18s ease-out}@keyframes in{from{transform:translateY(4px)}to{transform:none}}}
+</style>
+<!--HEAD-END-->
+</head>
+<body>
+<header><div class="bar">
+  <h1>ZAドーナツ辞典<small>M次元ラッシュ きのみ逆引き</small></h1>
+  <nav role="tablist" id="tabs">
+    <button role="tab" data-tab="find">逆引き</button>
+    <button role="tab" data-tab="make">作る</button>
+    <button role="tab" data-tab="berry">きのみ</button>
+    <button role="tab" data-tab="power">パワー</button>
+    <button role="tab" data-tab="conf">設定</button>
+  </nav>
+</div></header>
+<main>
+
+<section class="view" id="v-find">
+  <div class="panel">
+    <h2>ほしいドーナツの条件</h2>
+    <div>
+      <div class="lbl">ほしい効果のフレーバー（2つまで）</div>
+      <div class="chips" id="f-flavors"></div>
+      <p class="hint" id="f-flavor-hint"></p>
+    </div>
+    <div class="fields">
+      <label class="field"><span>パワーLv.の狙い</span>
+        <select id="f-level">
+          <option value="1">Lv.1以上がつく</option>
+          <option value="2">Lv.2が出る</option>
+          <option value="3">Lv.3が出る</option>
+          <option value="4">Lv.3が半分以上</option>
+          <option value="5">Lv.3確定</option>
+        </select></label>
+      <label class="field"><span>星の数（フレーバーランク）</span>
+        <select id="f-stars"><option value="0">指定なし</option><option value="1">★1以上</option><option value="2">★2以上</option><option value="3">★3以上</option><option value="4">★4以上</option><option value="5">★5</option></select></label>
+      <label class="field"><span>ハラモチ（kcal以上）</span><input type="number" id="f-cal" min="0" step="50" inputmode="numeric" placeholder="例 1500"></label>
+      <label class="field"><span>腹持ち時間（分以上）</span><input type="number" id="f-min" min="0" step="0.5" inputmode="decimal" placeholder="例 5"></label>
+      <label class="field"><span>入るひずみの★</span>
+        <select id="f-rift"><option value="1">★1</option><option value="2">★2</option><option value="3">★3</option><option value="4">★4</option><option value="5">★5</option></select></label>
+      <label class="field"><span>プラスLv.（以上）</span><input type="number" id="f-lv" min="0" max="100" inputmode="numeric" placeholder="例 40"></label>
+      <label class="field"><span>使えるきのみの数</span>
+        <select id="f-slots"><option value="3">3個（ミアレバター）</option><option value="4">4個（スーパー）</option><option value="5">5個（ハイパー）</option><option value="6">6個（ウルトラ）</option><option value="7">7個（マスター）</option><option value="8">8個（いじげん）</option></select></label>
+      <label class="field"><span>使うきのみ</span>
+        <select id="f-pool"><option value="all">すべて</option><option value="normal">通常きのみだけ</option><option value="hyper">いじげんきのみだけ</option><option value="stock">所持数を入れたものだけ</option></select></label>
+      <label class="field"><span>いじげんきのみの解放</span>
+        <select id="f-tier"></select></label>
+      <label class="field"><span>並び順</span>
+        <select id="f-sort"><option value="cost">貴重なきのみを節約</option><option value="cal">ハラモチが多い順</option><option value="lv">プラスLv.が高い順</option><option value="flv">狙いのフレーバーが高い順</option></select></label>
+    </div>
+    <div class="row"><button class="btn" id="f-run">きのみを逆引きする</button><span class="hint" id="f-status"></span></div>
+  </div>
+  <div class="cards" id="f-results"></div>
+</section>
+
+<section class="view" id="v-make" hidden>
+  <div class="panel">
+    <h2>きのみを選んで結果を見る</h2>
+    <div class="slots" id="m-slots"></div>
+    <div class="row">
+      <label class="field" style="flex:0 0 130px"><span>入るひずみの★</span>
+        <select id="m-rift"><option value="1">★1</option><option value="2">★2</option><option value="3">★3</option><option value="4">★4</option><option value="5">★5</option></select></label>
+      <button class="btn plain" id="m-clear">空にする</button>
+      <button class="btn ghost" id="m-save">このレシピを保存</button>
+    </div>
+    <div id="m-result"></div>
+  </div>
+  <div class="panel">
+    <div class="row"><h2>きのみ</h2>
+      <div class="chips" id="m-kind"></div></div>
+    <div class="picker" id="m-picker"></div>
+  </div>
+  <h2>保存したレシピ</h2>
+  <div class="cards" id="m-saved"></div>
+</section>
+
+<section class="view" id="v-berry" hidden>
+  <div class="row">
+    <div class="chips" id="b-kind"></div>
+    <input type="text" id="b-q" placeholder="名前でさがす" style="flex:1 1 140px;width:auto">
+  </div>
+  <p class="note">見出しをタップで並べ替え。「所持」に数を入れると、逆引きで「所持数を入れたものだけ」を選んだときに手持ちの範囲で探します。</p>
+  <div class="scroll"><table id="b-table"><thead></thead><tbody></tbody></table></div>
+</section>
+
+<section class="view" id="v-power" hidden>
+  <p class="note">フレーバーパワーはドーナツ作成時に最大3つ、ランダムでつきます。いちばん高いフレーバーの系統から選ばれ、数値が高いほど高Lv.が出ます。タイプ指定のあるパワーはタイプもランダムです。</p>
+  <div class="plist" id="p-list"></div>
+  <div class="panel">
+    <h2>フレーバーの数値とパワーLv.の出やすさ</h2>
+    <div class="scroll"><table id="p-odds"><thead></thead><tbody></tbody></table></div>
+    <p class="note">2つ以上のフレーバーが同値で最大のとき（ミックス）は1段階上の行として扱われます。</p>
+    <h2>星の数（フレーバー合計）</h2>
+    <div class="scroll"><table id="p-rank"><thead></thead><tbody></tbody></table></div>
+    <p class="note">ひずみより★が低いドーナツは捕獲率が下がります（1つ下で0.9倍、2つ以上下で0.3倍）。</p>
+  </div>
+</section>
+
+<section class="view" id="v-conf" hidden>
+  <div class="panel">
+    <h2>ハラモチの消費速度（kcal／秒）</h2>
+    <p class="note">腹持ち時間の計算に使います。初期値は攻略サイトの記載と実測報告からの目安です。実際に測った値に直してください。</p>
+    <div class="fields" id="c-drain"></div>
+  </div>
+  <div class="panel">
+    <h2>きのみを追加する</h2>
+    <p class="note">新しいきのみや、数値を自分で確かめたきのみを登録できます。登録したきのみは逆引き・作る・きのみ辞典のすべてで使えます。</p>
+    <div class="fields">
+      <label class="field"><span>名前</span><input type="text" id="c-name" placeholder="例 いじげん○○のみ"></label>
+      <label class="field"><span>スイート</span><input type="number" id="c-f0" min="0" value="0" inputmode="numeric"></label>
+      <label class="field"><span>スパイシー</span><input type="number" id="c-f1" min="0" value="0" inputmode="numeric"></label>
+      <label class="field"><span>サワー</span><input type="number" id="c-f2" min="0" value="0" inputmode="numeric"></label>
+      <label class="field"><span>ビター</span><input type="number" id="c-f3" min="0" value="0" inputmode="numeric"></label>
+      <label class="field"><span>フレッシュ</span><input type="number" id="c-f4" min="0" value="0" inputmode="numeric"></label>
+      <label class="field"><span>プラスLv.</span><input type="number" id="c-lv" min="0" value="1" inputmode="numeric"></label>
+      <label class="field"><span>カロリー</span><input type="number" id="c-cal" min="0" value="60" inputmode="numeric"></label>
+    </div>
+    <div class="row"><button class="btn" id="c-add">追加する</button><span class="hint" id="c-msg"></span></div>
+    <div class="cards" id="c-list"></div>
+  </div>
+  <div class="panel">
+    <h2>データの引っ越し</h2>
+    <p class="note">所持数・追加したきのみ・保存レシピ・消費速度はこの端末のブラウザに保存されます。別の端末に移すときは、書き出した文字をコピーして、移す先で貼り付けて読み込んでください。</p>
+    <textarea id="c-io" aria-label="書き出しデータ"></textarea>
+    <div class="row"><button class="btn plain" id="c-export">書き出す</button><button class="btn plain" id="c-import">貼り付けた内容を読み込む</button><span class="hint" id="c-iomsg"></span></div>
+  </div>
+  <p class="note">数値の出典：きのみの各数値とパワー抽選の仕組みは Serebii.net（Ansha's Donuts / Flavor Powers）、星の閾値と倍率は ポケモンWiki「ドーナツ」、いじげんきのみの解放時期は Game8。パワーの抽選はランダムなので、Lv.の確率は目安です。</p>
+</section>
+</main>
+
+<script>
+(function(){
+"use strict";
+var FL=["スイート","スパイシー","サワー","ビター","フレッシュ"];
+var FLS=["甘","辛","酸","苦","爽"];
+var NAMES="クラボ,カゴ,モモン,チーゴ,ナナシ,オレン,キー,ラム,オボン,ザロク,ネコブ,タポル,ロメ,ウブ,マトマ,オッカ,イトケ,ソクノ,リンド,ヤチェ,ヨプ,ビアー,シュカ,バコウ,ウタン,タンガ,ヨロギ,カシブ,ハバン,ナモ,リリバ,ホズ,ロゼル".split(",");
+// [スイート,スパイシー,サワー,ビター,フレッシュ,プラスLv,カロリー]
+var NORMAL=[[0,10,0,0,0,1,60],[0,0,0,0,10,1,60],[10,0,0,0,0,1,60],[0,0,0,10,0,1,60],[0,0,10,0,0,1,60],[0,5,5,5,5,1,60],[5,5,5,0,5,1,60],[5,5,0,5,5,2,65],[5,0,5,5,5,2,65],[10,10,0,10,0,2,65],[0,0,10,10,10,2,65],[10,10,10,0,0,2,65],[0,10,0,10,10,2,65],[10,0,10,0,10,2,65],[0,15,0,0,10,2,65],[10,15,0,0,0,3,70],[0,0,0,10,15,3,70],[15,0,10,0,0,3,70],[0,10,0,15,0,3,70],[0,0,15,0,10,3,70],[0,15,0,10,0,3,70],[0,0,10,0,15,3,70],[15,10,0,0,0,3,70],[0,0,0,15,10,3,70],[10,0,15,0,0,3,70],[0,20,10,0,0,3,70],[0,10,0,0,20,3,70],[20,0,0,0,10,3,70],[10,0,0,20,0,3,70],[0,0,20,10,0,3,70],[0,25,0,0,10,3,70],[10,0,0,0,25,3,70],[25,0,0,10,0,3,70]];
+var HYPER=[[0,40,0,0,0,5,80],[0,0,0,0,40,3,100],[40,0,0,0,0,2,100],[0,0,0,40,0,3,110],[0,0,40,0,0,4,90],[10,20,15,15,0,6,90],[0,15,15,10,20,4,110],[20,15,10,0,15,3,110],[15,10,0,20,15,4,120],[30,35,0,0,5,7,140],[5,0,0,30,35,5,160],[35,0,30,5,0,4,160],[0,5,35,0,30,6,150],[0,60,25,0,5,8,140],[5,25,0,0,60,6,180],[60,0,0,5,25,5,180],[25,0,5,60,0,6,200],[0,5,60,25,0,7,160],[15,55,0,5,25,9,210],[25,0,5,15,55,7,250],[55,5,15,25,0,6,250],[0,15,25,55,5,7,270],[5,25,55,0,15,8,230],[10,95,0,10,5,10,240],[5,0,10,10,95,8,300],[95,10,10,5,0,7,300],[0,10,5,95,10,8,330],[10,5,95,0,10,9,270],[85,0,0,0,65,8,370],[0,0,65,0,85,9,370],[0,0,65,85,0,9,400],[0,85,0,65,0,9,370],[0,65,85,0,0,10,340]];
+var HTIER=[1,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,4,5,5,5,5,5,6,6,6,6,6,7,7,7,7,7];
+var TIERS=["","最初から","メガアブソル撃破後","メガムクホーク撃破後","メガシャリタツ撃破後","メガニャオニクス撃破後","メガヒードラン撃破後","ダークライ撃破後"];
+var TCOST=[1,3,4,6,8,11,15,20];
+var RANK=[[120,1.1],[240,1.2],[350,1.3],[700,1.4],[960,1.5]];
+var BUDGET=[120,160,200,300,360,420,525,700,760];
+// 予算ごとの Lv1/Lv2/Lv3 の出る割合
+var ODDS=[[0,0,0],[1,0,0],[1,0,0],[.5,.5,0],[.25,.75,0],[.19,.43,.38],[.14,.29,.57],[.1,.33,.57],[0,.33,.67],[0,0,1]];
+var POWERS=[
+ [["かがやきパワー：タイプ／ぜんぶ","色違いの判定回数が増える。Lv.3は入口付近にいる対象タイプの最初の1匹が色違いになる",["+1回","+2回","+3回"]],
+  ["オヤブンパワー","オヤブンの出現率（通常1%）",["11%","21%","51%"]],
+  ["でかでかパワー","大きい個体が出やすい（サイズ値の範囲）",["128〜255","160〜255","224〜255"]],
+  ["ちびちびパワー","小さい個体が出やすい（サイズ値の範囲）",["0〜127","0〜95","0〜31"]]],
+ [["こうげきパワー","手持ちのこうげきが上がる",["+10%","+25%","+50%"]],
+  ["とくこうパワー","手持ちのとくこうが上がる",["+10%","+25%","+50%"]],
+  ["わざパワー：タイプ","対象タイプの技の威力が上がる",["+10%","+25%","+50%"]],
+  ["すばやさパワー","3秒より長い技の待ち時間が短くなる",["小","中","大"]]],
+ [["どっさりパワー","浮いているボールから出る道具が増える",["+2個","+3個","+5個"]],
+  ["どうぐパワー：きのみ／アメ／おたから／ボール／とくべつ／コイン","対象の道具が出やすくなる（出現の重み）。Lv.3はほぼその道具だけになる",["+1","+2","+1000"]],
+  ["メガパワー：チャージ","メガエネルギーがたまりやすい",["+10%","+25%","+50%"]],
+  ["メガパワー：ながもち","メガシンカが長く続く",["+30%","+50%","+100%"]]],
+ [["ぼうぎょパワー","手持ちのぼうぎょが上がる",["+10%","+25%","+50%"]],
+  ["とくぼうパワー","手持ちのとくぼうが上がる",["+10%","+25%","+50%"]],
+  ["めんえきパワー：タイプ","対象タイプの技で受けるダメージが減る",["×0.9","×0.8","×0.65"]]],
+ [["そうぐうパワー","倒した・捕まえたポケモンが早く再出現する（再出現までの時間）",["70%","50%","30%"]],
+  ["ほかくパワー：タイプ／すべて","捕獲率が上がる",["+10%","+20%","+30%"]]]
+];
+var FUSE=["色違い・オヤブン・サイズ厳選","攻撃・技の威力","道具集め・メガシンカ","防御・耐久","捕獲・遭遇"];
+
+/* ---- 保存 ---- */
+var KEY="za-donut-v1";
+var S={stock:{},custom:[],saved:[],drain:[1,1.6,3.5,7.5,10],tab:"find",form:null,make:[]};
+try{var raw=localStorage.getItem(KEY);if(raw){var o=JSON.parse(raw);for(var k in o)S[k]=o[k];}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+
+/* ---- きのみ ---- */
+var B=[],BY={};
+function build(){
+  B=[];BY={};
+  NAMES.forEach(function(n,i){var r=NORMAL[i];B.push({id:"n"+i,name:n+"のみ",f:r.slice(0,5),lv:r[5],cal:r[6],kind:"normal",tier:0});});
+  NAMES.forEach(function(n,i){var r=HYPER[i];B.push({id:"h"+i,name:"いじげん"+n+"のみ",f:r.slice(0,5),lv:r[5],cal:r[6],kind:"hyper",tier:HTIER[i]});});
+  S.custom.forEach(function(c){B.push({id:c.id,name:c.name,f:c.f.slice(),lv:c.lv,cal:c.cal,kind:"custom",tier:0});});
+  B.forEach(function(b){b.sum=b.f[0]+b.f[1]+b.f[2]+b.f[3]+b.f[4];b.top=b.f.indexOf(Math.max.apply(null,b.f));b.cost=b.kind==="hyper"?TCOST[b.tier]:b.kind==="custom"?5:1;BY[b.id]=b;});
+}
+function short(b){return b.name.replace(/のみ$/,"");}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function $(id){return document.getElementById(id);}
+
+/* ---- 計算 ---- */
+function budgetOf(v,rainbow){var b=0;for(var i=0;i<BUDGET.length;i++)if(v>=BUDGET[i])b=i+1;if(b&&rainbow)b=Math.min(9,b+1);return b;}
+function starsOf(total){var s=0;for(var i=0;i<5;i++)if(total>=RANK[i][0])s=i+1;return s;}
+function evalRecipe(items){ // items: [[berry,count],...]
+  var f=[0,0,0,0,0],lv=0,cal=0,n=0,cost=0;
+  items.forEach(function(it){var b=it[0],c=it[1];for(var i=0;i<5;i++)f[i]+=b.f[i]*c;lv+=b.lv*c;cal+=b.cal*c;n+=c;cost+=b.cost*c;});
+  return finish(f,lv,cal,n,cost);
+}
+function finish(f,lv,cal,n,cost){
+  var total=f[0]+f[1]+f[2]+f[3]+f[4],st=starsOf(total),m=1+st/10;
+  var mx=Math.max(f[0],f[1],f[2],f[3],f[4]),ties=0;for(var i=0;i<5;i++)if(f[i]===mx)ties++;
+  return {f:f,total:total,stars:st,lv:Math.min(100,Math.floor(lv*m+1e-9)),cal:Math.floor(cal*m+1e-9),n:n,cost:cost,max:mx,rainbow:mx>0&&ties>1};
+}
+function fmtTime(sec){sec=Math.floor(sec);var m=Math.floor(sec/60),s=sec%60;return m+"分"+(s<10?"0":"")+s+"秒";}
+function starStr(n){return '<span class="stars">'+"★".repeat(n)+"<s>"+"★".repeat(5-n)+"</s></span>";}
+function oddsText(b){var o=ODDS[b],t=[];if(b===1)return "Lv.1";for(var i=0;i<3;i++)if(o[i]>0)t.push("Lv."+(i+1)+" "+Math.round(o[i]*100)+"%");return t.join("・");}
+
+function cardHTML(items,r,rift,actions){
+  var rec=items.map(function(it){return "<span>"+esc(short(it[0]))+" <i>×"+it[1]+"</i></span>";}).join("");
+  var flv=r.f.map(function(v,i){return '<div class="f'+i+'">'+FL[i]+"<br><b>"+v+'</b><div class="meter"><u style="width:'+Math.min(100,v/7.6)+'%"></u></div></div>';}).join("");
+  var pw=[];
+  r.f.forEach(function(v,i){var isTop=v===r.max;var b=budgetOf(v,r.rainbow&&isTop);if(!b)return;
+    pw.push('<div class="f'+i+'"><span>'+FL[i]+" "+v+"</span> → "+oddsText(b)+(isTop?"　"+FUSE[i]:"　※最大ではないので出にくい")+"</div>");});
+  if(!pw.length)pw.push('<div class="hint">どのフレーバーも120未満なのでパワーはつきません</div>');
+  var tags=(r.rainbow?'<span class="tag">ミックス</span>':"")+(r.stars<rift?'<span class="tag warn">ひずみより★が低い</span>':"");
+  return '<div class="card"><div class="recipe">'+rec+"</div>"+
+   '<div class="stats"><span>'+starStr(r.stars)+" 合計"+r.total+"</span><span>プラスLv. <b>+"+r.lv+"</b></span><span>ハラモチ <b>"+r.cal+"</b>kcal</span><span>★"+rift+"のひずみで約<b>"+fmtTime(r.cal/S.drain[rift-1])+"</b></span>"+tags+"</div>"+
+   '<div class="flv">'+flv+'</div><div class="pw">'+pw.join("")+"</div>"+(actions?'<div class="row">'+actions+"</div>":"")+"</div>";
+}
+
+/* ---- タブ ---- */
+var TABS=["find","make","berry","power","conf"];
+function showTab(t){
+  if(TABS.indexOf(t)<0)t="find";S.tab=t;save();
+  TABS.forEach(function(x){$("v-"+x).hidden=x!==t;});
+  Array.prototype.forEach.call($("tabs").children,function(b){b.setAttribute("aria-selected",b.dataset.tab===t);});
+  if(t==="make")renderMake();if(t==="berry")renderBerry();if(t==="conf")renderConf();
+  window.scrollTo(0,0);
+}
+$("tabs").addEventListener("click",function(e){var b=e.target.closest("button");if(b)showTab(b.dataset.tab);});
+
+/* ---- 逆引き ---- */
+var want=[];
+var LEVELREQ={1:function(b){return b>=1;},2:function(b){return b>=3;},3:function(b){return b>=5;},4:function(b){return b>=6;},5:function(b){return b>=9;}};
+function renderFlavorChips(){
+  $("f-flavors").innerHTML=FL.map(function(n,i){return '<button class="chip f'+i+'" data-i="'+i+'" aria-pressed="'+(want.indexOf(i)>=0)+'"><span class="dot"></span>'+n+"</button>";}).join("");
+  $("f-flavor-hint").innerHTML=want.length?want.map(function(i){return "<b>"+FL[i]+"</b>："+FUSE[i]+"（"+POWERS[i].map(function(p){return p[0].split("：")[0];}).filter(function(x,j,a){return a.indexOf(x)===j;}).join("・")+"）";}).join("<br>")+(want.length===2?"<br>2つ選ぶと、両方が条件を満たし上位2つになるレシピを探します。同値ならミックスです。":""):"選ばないときは、星・ハラモチ・プラスLv.だけで探します。";
+}
+$("f-flavors").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;var i=+b.dataset.i,p=want.indexOf(i);
+  if(p>=0)want.splice(p,1);else{want.push(i);if(want.length>2)want.shift();}renderFlavorChips();});
+$("f-tier").innerHTML=TIERS.slice(1).map(function(t,i){return '<option value="'+(i+1)+'">'+(i===6?"すべて解放（"+t+"）":t+"まで")+"</option>";}).reverse().join("");
+
+var FIELDS=["f-level","f-stars","f-cal","f-min","f-rift","f-lv","f-slots","f-pool","f-tier","f-sort"];
+function readForm(){var o={want:want.slice()};FIELDS.forEach(function(id){o[id]=$(id).value;});return o;}
+function loadForm(o){want=(o.want||[]).slice(0,2);FIELDS.forEach(function(id){if(o[id]!=null)$(id).value=o[id];});}
+var lastResults=[];
+function runSearch(){
+  var q=readForm();S.form=q;save();
+  var level=+q["f-level"],minStars=+q["f-stars"],rift=+q["f-rift"],drain=S.drain[rift-1];
+  var minCal=Math.max(+q["f-cal"]||0,(+q["f-min"]||0)*60*drain),minLv=+q["f-lv"]||0,slots=+q["f-slots"],pool=q["f-pool"],tier=+q["f-tier"],sort=q["f-sort"];
+  var P=B.filter(function(b){
+    if(pool==="normal"&&b.kind==="hyper")return false;
+    if(pool==="hyper"&&b.kind==="normal")return false;
+    if(pool==="stock"&&!(S.stock[b.id]>0))return false;
+    if(b.kind==="hyper"&&b.tier>tier)return false;
+    return b.sum>0||b.cal>0;});
+  var n=P.length,lim=P.map(function(b){return pool==="stock"?Math.min(8,S.stock[b.id]):8;});
+  var need=LEVELREQ[level],w0=want[0],w1=want.length>1?want[1]:-1,out=[],checked=0;
+  var key=sort==="cal"?function(r){return -r.cal;}:sort==="lv"?function(r){return -r.lv*10000-r.cal;}:sort==="flv"?function(r){return -(want.length?Math.min.apply(null,want.map(function(i){return r.f[i];})):r.total);}:function(r){return r.cost*100000-r.cal;};
+  function test(i,a,j,b,k,c){
+    checked++;
+    var A=P[i],f=[A.f[0]*a,A.f[1]*a,A.f[2]*a,A.f[3]*a,A.f[4]*a],lv=A.lv*a,cal=A.cal*a,cost=A.cost*a,cnt=a,X;
+    if(j>=0){X=P[j];f[0]+=X.f[0]*b;f[1]+=X.f[1]*b;f[2]+=X.f[2]*b;f[3]+=X.f[3]*b;f[4]+=X.f[4]*b;lv+=X.lv*b;cal+=X.cal*b;cost+=X.cost*b;cnt+=b;}
+    if(k>=0){X=P[k];f[0]+=X.f[0]*c;f[1]+=X.f[1]*c;f[2]+=X.f[2]*c;f[3]+=X.f[3]*c;f[4]+=X.f[4]*c;lv+=X.lv*c;cal+=X.cal*c;cost+=X.cost*c;cnt+=c;}
+    var r=finish(f,lv,cal,cnt,cost);
+    if(r.stars<minStars||r.cal<minCal||r.lv<minLv)return;
+    if(w0>=0){
+      var lo=w1>=0?Math.min(f[w0],f[w1]):f[w0];
+      for(var x=0;x<5;x++)if(x!==w0&&x!==w1&&f[x]>=lo)return;
+      if(!need(budgetOf(f[w0],r.rainbow&&f[w0]===r.max)))return;
+      if(w1>=0&&!need(budgetOf(f[w1],r.rainbow&&f[w1]===r.max)))return;
+    }
+    r.items=[[A,a]];if(j>=0)r.items.push([P[j],b]);if(k>=0)r.items.push([P[k],c]);r.key=key(r);
+    out.push(r);if(out.length>5000){out.sort(function(p,q){return p.key-q.key;});out.length=300;}
+  }
+  var i,j,k,a,b,t;
+  for(t=3;t<=slots;t++){
+    for(i=0;i<n;i++){
+      if(lim[i]>=t)test(i,t,-1,0,-1,0);
+      for(j=i+1;j<n;j++){
+        for(a=1;a<t;a++){if(a<=lim[i]&&t-a<=lim[j])test(i,a,j,t-a,-1,0);}
+        for(k=j+1;k<n;k++)for(a=1;a<=t-2&&a<=lim[i];a++)for(b=1;a+b<t&&b<=lim[j];b++)if(t-a-b<=lim[k])test(i,a,j,b,k,t-a-b);
+      }
+    }
+  }
+  out.sort(function(p,q){return p.key-q.key;});
+  lastResults=out.slice(0,40);
+  $("f-status").textContent=checked.toLocaleString()+"通りを調べて "+(out.length>=300?"300件以上":out.length+"件")+" 見つかりました"+(out.length>40?"（上位40件を表示）":"");
+  var el=$("f-results");
+  if(!n){el.innerHTML='<div class="card"><p>使えるきのみがありません。「きのみ」タブで所持数を入れるか、「使うきのみ」を変えてください。</p></div>';return;}
+  if(!out.length){el.innerHTML='<div class="card"><p><b>条件に合うレシピがありません。</b></p><p class="hint">きのみ3種類までの組み合わせで探しています。パワーLv.の狙いを下げる、使えるきのみの数を増やす、いじげんきのみの解放を進める、のどれかで見つかりやすくなります。</p></div>';return;}
+  el.innerHTML=lastResults.map(function(r,x){return cardHTML(r.items,r,rift,'<button class="btn ghost" data-open="'+x+'">「作る」で開く</button><button class="btn plain" data-keep="'+x+'">保存</button>');}).join("");
+}
+$("f-run").addEventListener("click",function(){$("f-status").textContent="さがしています…";setTimeout(runSearch,20);});
+$("f-results").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;
+  var r=lastResults[b.dataset.open!=null?b.dataset.open:b.dataset.keep];if(!r)return;
+  var ids=[];r.items.forEach(function(it){for(var c=0;c<it[1];c++)ids.push(it[0].id);});
+  if(b.dataset.open!=null){S.make=ids;$("m-rift").value=$("f-rift").value;showTab("make");}
+  else{keep(ids);b.textContent="保存しました";b.disabled=true;}
+});
+function keep(ids){var k=ids.slice().sort().join(",");if(!S.saved.some(function(s){return s.slice().sort().join(",")===k;}))S.saved.unshift(ids);save();}
+
+/* ---- 作る ---- */
+var mKind="hyper";
+function groupIds(ids){var m={},o=[];ids.forEach(function(id){if(!BY[id])return;if(!m[id]){m[id]=[BY[id],0];o.push(m[id]);}m[id][1]++;});return o;}
+function renderMake(){
+  S.make=S.make.filter(function(id){return BY[id];}).slice(0,8);
+  var h="";for(var i=0;i<8;i++){var b=BY[S.make[i]];h+=b?'<button class="slot f'+b.top+'" data-rm="'+i+'" title="タップで外す">'+esc(short(b))+" ✕</button>":'<span class="slot empty">'+(i+1)+"</span>";}
+  $("m-slots").innerHTML=h;
+  var rift=+$("m-rift").value;
+  $("m-result").innerHTML=S.make.length>=3?cardHTML(groupIds(S.make),evalRecipe(groupIds(S.make)),rift,""):'<p class="hint">きのみを3個以上選ぶと結果が出ます（最大8個）。下の一覧をタップして追加します。</p>';
+  $("m-kind").innerHTML=[["hyper","いじげん"],["normal","通常"],["custom","追加分"]].filter(function(k){return k[0]!=="custom"||S.custom.length;}).map(function(k){return '<button class="chip" data-k="'+k[0]+'" aria-pressed="'+(mKind===k[0])+'">'+k[1]+"</button>";}).join("");
+  var full=S.make.length>=8;
+  $("m-picker").innerHTML=B.filter(function(b){return b.kind===mKind;}).map(function(b){
+    var fs=b.f.map(function(v,i){return v?FLS[i]+v:"";}).filter(Boolean).join(" ");
+    return '<button class="pick f'+b.top+'" data-add="'+b.id+'"'+(full?" disabled":"")+">"+esc(short(b))+"<small>"+fs+"</small><small>+"+b.lv+" / "+b.cal+"kcal</small></button>";}).join("");
+  var sv=$("m-saved");
+  sv.innerHTML=S.saved.length?S.saved.map(function(ids,x){var g=groupIds(ids);if(!g.length)return "";return cardHTML(g,evalRecipe(g),rift,'<button class="btn ghost" data-load="'+x+'">開く</button><button class="btn plain" data-del="'+x+'">削除</button>');}).join(""):'<p class="hint">まだありません。逆引きの結果や、上で作ったレシピを保存できます。</p>';
+  save();
+}
+$("m-slots").addEventListener("click",function(e){var b=e.target.closest("[data-rm]");if(b){S.make.splice(+b.dataset.rm,1);renderMake();}});
+$("m-picker").addEventListener("click",function(e){var b=e.target.closest("[data-add]");if(b&&S.make.length<8){S.make.push(b.dataset.add);renderMake();}});
+$("m-kind").addEventListener("click",function(e){var b=e.target.closest("button");if(b){mKind=b.dataset.k;renderMake();}});
+$("m-rift").addEventListener("change",renderMake);
+$("m-clear").addEventListener("click",function(){S.make=[];renderMake();});
+$("m-save").addEventListener("click",function(){if(S.make.length>=3){keep(S.make.slice());renderMake();}});
+$("m-saved").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;
+  if(b.dataset.load!=null){S.make=S.saved[b.dataset.load].slice();renderMake();window.scrollTo(0,0);}
+  else if(b.dataset.del!=null){S.saved.splice(+b.dataset.del,1);renderMake();}});
+
+/* ---- きのみ辞典 ---- */
+var bKind="all",bSort="",bDir=-1;
+var COLS=[["name","きのみ"],["f0","甘"],["f1","辛"],["f2","酸"],["f3","苦"],["f4","爽"],["sum","合計"],["lv","Lv."],["cal","kcal"],["tier","入手"],["stock","所持"]];
+function bVal(b,c){return c==="name"?b.name:c[0]==="f"?b.f[+c[1]]:c==="stock"?(S.stock[b.id]||0):b[c];}
+function renderBerry(){
+  $("b-kind").innerHTML=[["all","すべて"],["hyper","いじげん"],["normal","通常"]].map(function(k){return '<button class="chip" data-k="'+k[0]+'" aria-pressed="'+(bKind===k[0])+'">'+k[1]+"</button>";}).join("");
+  $("b-table").tHead.innerHTML="<tr>"+COLS.map(function(c,i){return '<th data-c="'+c[0]+'"'+(i>0&&i<6?' class="f'+(i-1)+'"':"")+(bSort===c[0]?' aria-sort="'+(bDir<0?"descending":"ascending")+'"':"")+">"+c[1]+(bSort===c[0]?(bDir<0?"▼":"▲"):"")+"</th>";}).join("")+"</tr>";
+  var q=$("b-q").value.trim();
+  var list=B.filter(function(b){return (bKind==="all"||b.kind===bKind||(b.kind==="custom"))&&(!q||b.name.indexOf(q)>=0);});
+  if(bSort)list.sort(function(x,y){var p=bVal(x,bSort),r=bVal(y,bSort);return (p<r?-1:p>r?1:0)*bDir;});
+  $("b-table").tBodies[0].innerHTML=list.map(function(b){
+    return "<tr><td>"+esc(short(b))+(b.kind==="custom"?' <span class="tag">追加</span>':"")+"</td>"+
+      b.f.map(function(v,i){return '<td class="'+(v?"v f"+i:"z")+'">'+v+"</td>";}).join("")+
+      "<td>"+b.sum+"</td><td>+"+b.lv+"</td><td>"+b.cal+"</td><td>"+(b.kind==="hyper"?TIERS[b.tier]:b.kind==="normal"?"きのみショップ":"自分で追加")+"</td>"+
+      '<td><span class="stock"><button data-s="-1" data-id="'+b.id+'" aria-label="減らす">−</button><input type="number" min="0" inputmode="numeric" data-id="'+b.id+'" value="'+(S.stock[b.id]||0)+'" aria-label="'+esc(b.name)+'の所持数"><button data-s="1" data-id="'+b.id+'" aria-label="増やす">＋</button></span></td></tr>';}).join("");
+}
+$("b-kind").addEventListener("click",function(e){var b=e.target.closest("button");if(b){bKind=b.dataset.k;renderBerry();}});
+$("b-q").addEventListener("input",renderBerry);
+$("b-table").addEventListener("click",function(e){
+  var th=e.target.closest("th");if(th){var c=th.dataset.c;if(bSort===c)bDir=-bDir;else{bSort=c;bDir=c==="name"||c==="tier"?1:-1;}renderBerry();return;}
+  var b=e.target.closest("button[data-s]");if(b){var id=b.dataset.id,v=Math.max(0,(S.stock[id]||0)+(+b.dataset.s));setStock(id,v);b.parentNode.querySelector("input").value=v;}});
+$("b-table").addEventListener("change",function(e){if(e.target.matches("input[data-id]")){var v=Math.max(0,Math.floor(+e.target.value||0));e.target.value=v;setStock(e.target.dataset.id,v);}});
+function setStock(id,v){if(v>0)S.stock[id]=v;else delete S.stock[id];save();}
+
+/* ---- パワー辞典 ---- */
+function renderPower(){
+  $("p-list").innerHTML=POWERS.map(function(g,i){return '<div class="pgroup f'+i+'"><h3>'+FL[i]+"　"+FUSE[i]+"</h3><dl>"+g.map(function(p){return "<div><dt>"+p[0]+"</dt><dd>"+p[1]+'<div class="lv">'+p[2].map(function(v,l){return "<span>Lv."+(l+1)+" "+v+"</span>";}).join("")+"</div></dd></div>";}).join("")+"</dl></div>";}).join("");
+  $("p-odds").tHead.innerHTML="<tr><th>フレーバーの数値</th><th>Lv.1</th><th>Lv.2</th><th>Lv.3</th></tr>";
+  $("p-odds").tBodies[0].innerHTML=BUDGET.map(function(v,i){var o=ODDS[i+1];return "<tr><td>"+v+"以上</td>"+o.map(function(p,l){return "<td"+(p?"":' class="z"')+">"+(i===0&&l===0?"○":p?Math.round(p*100)+"%":"—")+"</td>";}).join("")+"</tr>";}).join("");
+  $("p-rank").tHead.innerHTML="<tr><th>星</th><th>フレーバー合計</th><th>プラスLv.・ハラモチの倍率</th></tr>";
+  $("p-rank").tBodies[0].innerHTML=RANK.map(function(r,i){return "<tr><td>"+starStr(i+1)+"</td><td>"+r[0]+"以上</td><td>×"+r[1]+"</td></tr>";}).join("");
+}
+
+/* ---- 設定 ---- */
+function renderConf(){
+  $("c-drain").innerHTML=S.drain.map(function(v,i){return '<label class="field"><span>★'+(i+1)+'のひずみ</span><input type="number" id="c-d'+i+'" data-d="'+i+'" min="0.1" step="0.1" inputmode="decimal" value="'+v+'"></label>';}).join("");
+  $("c-list").innerHTML=S.custom.map(function(c,x){return '<div class="row"><b>'+esc(c.name)+'</b><span class="hint">'+c.f.map(function(v,i){return v?FL[i]+v:"";}).filter(Boolean).join(" ")+" / +"+c.lv+" / "+c.cal+'kcal</span><button class="btn plain" data-cdel="'+x+'">削除</button></div>';}).join("");
+}
+$("c-drain").addEventListener("change",function(e){var i=e.target.dataset.d;if(i==null)return;var v=+e.target.value;if(v>0){S.drain[i]=v;save();}else e.target.value=S.drain[i];});
+$("c-add").addEventListener("click",function(){
+  var name=$("c-name").value.trim(),f=[0,1,2,3,4].map(function(i){return Math.max(0,Math.floor(+$("c-f"+i).value||0));});
+  if(!name){$("c-msg").textContent="名前を入れてください";return;}
+  if(B.some(function(b){return b.name===name;})){$("c-msg").textContent="同じ名前のきのみがあります";return;}
+  S.custom.push({id:"c"+Date.now(),name:name,f:f,lv:Math.max(0,Math.floor(+$("c-lv").value||0)),cal:Math.max(0,Math.floor(+$("c-cal").value||0))});
+  save();build();renderConf();$("c-name").value="";$("c-msg").textContent="「"+name+"」を追加しました";});
+$("c-list").addEventListener("click",function(e){var b=e.target.closest("[data-cdel]");if(b){S.custom.splice(+b.dataset.cdel,1);save();build();renderConf();}});
+$("c-export").addEventListener("click",function(){var t=$("c-io");t.value=JSON.stringify({stock:S.stock,custom:S.custom,saved:S.saved,drain:S.drain});t.select();
+  var done=function(m){$("c-iomsg").textContent=m;};
+  try{navigator.clipboard.writeText(t.value).then(function(){done("コピーしました");},function(){done("上の文字を選択してコピーしてください");});}catch(err){done("上の文字を選択してコピーしてください");}});
+$("c-import").addEventListener("click",function(){
+  try{var o=JSON.parse($("c-io").value);if(typeof o!=="object"||!o)throw 0;
+    if(o.stock&&typeof o.stock==="object")S.stock=o.stock;
+    if(Array.isArray(o.custom))S.custom=o.custom.filter(function(c){return c&&c.id&&c.name&&Array.isArray(c.f)&&c.f.length===5;});
+    if(Array.isArray(o.saved))S.saved=o.saved.filter(Array.isArray);
+    if(Array.isArray(o.drain)&&o.drain.length===5&&o.drain.every(function(v){return v>0;}))S.drain=o.drain;
+    save();build();renderConf();$("c-iomsg").textContent="読み込みました";
+  }catch(err){$("c-iomsg").textContent="読み込めませんでした。書き出した文字をそのまま貼り付けてください";}});
+
+/* ---- 起動 ---- */
+var first=!S.form;
+build();
+// 初回の例: サワーでLv.3を狙う、★3以上、★3のひずみ
+loadForm(S.form||{want:[2],"f-level":"3","f-stars":"3","f-rift":"3","f-slots":"8","f-pool":"all","f-tier":"7","f-sort":"cost"});
+renderFlavorChips();renderPower();showTab(S.tab);runSearch();
+if(first)$("f-status").textContent="例：サワーでLv.3を狙う★3以上のレシピ。条件を変えて逆引きしてください";
+})();
+</script>
+<!--ARTIFACT-END-->
+</body>
+</html>
