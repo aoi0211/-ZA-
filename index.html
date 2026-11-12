@@ -3,8 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ZAドーナツ辞典｜ポケモンZA M次元ラッシュ きのみ逆引きツール</title>
+<meta name="description" content="ポケモンZA（Pokémon LEGENDS Z-A）M次元ラッシュのドーナツ作りで、ついてほしいフレーバーパワー・星の数・ハラモチエネルギー・プラスレベルから必要なきのみを逆引きできる無料ツール。きのみ66種の数値一覧とレシピ計算にも対応。">
+<link rel="canonical" href="https://aoi0211.github.io/-ZA-/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23d9a066'/%3E%3Cpath d='M32 6a26 26 0 1 0 0 52 26 26 0 0 0 0-52z' fill='%23b92d78'/%3E%3Ccircle cx='32' cy='32' r='10' fill='%23f5f2fb'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ZAドーナツ辞典">
+<meta property="og:title" content="ZAドーナツ辞典｜ポケモンZA M次元ラッシュ きのみ逆引きツール">
+<meta property="og:description" content="ポケモンZA（Pokémon LEGENDS Z-A）M次元ラッシュのドーナツ作りで、ついてほしいフレーバーパワー・星の数・ハラモチエネルギー・プラスレベルから必要なきのみを逆引きできる無料ツール。きのみ66種の数値一覧とレシピ計算にも対応。">
+<meta property="og:url" content="https://aoi0211.github.io/-ZA-/">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"ZAドーナツ辞典","url":"https://aoi0211.github.io/-ZA-/","inLanguage":"ja","applicationCategory":"GameApplication","operatingSystem":"Chrome, Safari, Firefox","description":"ポケモンZA（Pokémon LEGENDS Z-A）M次元ラッシュのドーナツ作りで、ついてほしいフレーバーパワー・星の数・ハラモチエネルギー・プラスレベルから必要なきのみを逆引きできる無料ツール。きのみ66種の数値一覧とレシピ計算にも対応。","offers":{"@type":"Offer","price":"0","priceCurrency":"JPY"}}</script>
 <!--ARTIFACT-START-->
-<title>ZAドーナツ辞典</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&display=swap">
 <style>
@@ -68,6 +79,8 @@ textarea{font-family:ui-monospace,monospace;font-size:12px;min-height:90px}
 .btn.plain{border-color:var(--line);background:none;color:var(--ink);padding:5px 10px;font-size:13px;font-weight:600}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 summary{cursor:pointer;font-family:var(--display);font-weight:700;font-size:14px}
+.about{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:8px;max-width:68ch}
+.about b{color:var(--ink)}
 .unsupported{border:1.5px solid var(--warn);color:var(--warn);border-radius:12px;padding:10px 14px;font-size:13.5px}
 .unsupported b{color:var(--ink)}
 .hint{font-size:12.5px;color:var(--muted)}
@@ -263,6 +276,11 @@ tr:last-child td{border-bottom:0}
     <div class="cards" id="e-list"></div>
   </div>
 </section>
+<footer class="note about">
+  <p><b>ZAドーナツ辞典</b>は、『Pokémon LEGENDS Z-A』の追加コンテンツ「M次元ラッシュ」のドーナツ作りのための辞書ツールです。かがやきパワーやオヤブンパワー、どうぐパワーなど、ついてほしいフレーバーパワーと、星の数（フレーバーランク）・ハラモチエネルギー・腹持ち時間・プラスレベルの条件から、必要なきのみの組み合わせを逆引きできます。通常きのみ33種・いじげんきのみ33種の数値一覧と、レシピの計算にも対応しています。</p>
+  <p>個人が作成した非公式のファンツールです。任天堂株式会社、株式会社ポケモン、株式会社ゲームフリーク、株式会社クリーチャーズとは関係ありません。ポケットモンスター・ポケモン・Pokémonは各社の登録商標です。数値は攻略情報をもとにした目安で、ゲームの更新で変わることがあります。</p>
+</footer>
+<noscript><p style="padding:16px">このツールを使うにはJavaScriptを有効にしてください。</p></noscript>
 </main>
 
 <script>
@@ -313,8 +331,9 @@ function browserOf(ua){
 $("unsupported").hidden=!!browserOf(navigator.userAgent)&&!(navigator.brave);
 
 /* ---- 保存 ---- */
-var WEB=!!(window.claude&&window.claude.use),sharedDrain=null;
-function drain(){return sharedDrain||S.drain;}
+var WEB=!!(window.claude&&window.claude.use),LOCAL=!WEB&&location.protocol==="file:",sharedDrain=null,DRAIN0=[1,1.6,3.5,7.5,10];
+// WEB: 公開ページ(オーナーだけ設定可) / LOCAL: ダウンロード版(各自で管理) / どちらでもない: 公開サイト(設定なし・読み取り専用)
+function drain(){return sharedDrain||(LOCAL?S.drain:DRAIN0);}
 var KEY="za-donut-v1";
 var S={stock:{},saved:[],dict:{},drain:[1,1.6,3.5,7.5,10],tab:"find",form:null,make:[]};
 try{var raw=localStorage.getItem(KEY);if(raw){var o=JSON.parse(raw);for(var k in o)if(k!=="custom")S[k]=o[k];}}catch(e){}
@@ -502,7 +521,7 @@ function renderBerry(){
   $("b-table").tBodies[0].innerHTML=list.map(function(b){
     return "<tr><td>"+esc(short(b))+(b.kind==="custom"?' <span class="tag">追加</span>':b.edited?' <span class="tag">修正</span>':"")+"</td>"+
       b.f.map(function(v,i){return '<td class="'+(v?"v f"+i:"z")+'">'+v+"</td>";}).join("")+
-      "<td>"+b.sum+"</td><td>+"+b.lv+"</td><td>"+b.cal+"</td><td>"+(b.kind==="hyper"?TIERS[b.tier]:b.kind==="normal"?"きのみショップ":WEB?"オーナーが追加":"自分で追加")+"</td>"+
+      "<td>"+b.sum+"</td><td>+"+b.lv+"</td><td>"+b.cal+"</td><td>"+(b.kind==="hyper"?TIERS[b.tier]:b.kind==="normal"?"きのみショップ":LOCAL?"自分で追加":"オーナーが追加")+"</td>"+
       '<td><span class="stock"><button data-s="-1" data-id="'+b.id+'" aria-label="減らす">−</button><input type="number" min="0" inputmode="numeric" data-id="'+b.id+'" value="'+(S.stock[b.id]||0)+'" aria-label="'+esc(b.name)+'の所持数"><button data-s="1" data-id="'+b.id+'" aria-label="増やす">＋</button></span></td></tr>';}).join("");
 }
 $("b-kind").addEventListener("click",function(e){var b=e.target.closest("button");if(b){bKind=b.dataset.k;renderBerry();}});
@@ -531,7 +550,7 @@ function renderConf(){
 function renderEdit(){
   $("e-form").hidden=!canEdit;
   $("e-badge").textContent=canEdit?"編集できます":"オーナーのみ";
-  if(!WEB)$("e-note").textContent="辞書は最初から全データが入っています。ダウンロード版では、数値の修正やきのみの追加を自分用にできます。変更はこの端末のブラウザに保存されます。";
+  if(LOCAL)$("e-note").textContent="辞書は最初から全データが入っています。ダウンロード版では、数値の修正やきのみの追加を自分用にできます。変更はこの端末のブラウザに保存されます。";
   var cur=$("e-target").value;
   $("e-target").innerHTML='<option value="">＋ 新しいきのみを追加</option>'+B.map(function(b){return '<option value="'+b.id+'">'+esc(b.name)+(b.kind==="custom"?"（追加）":b.edited?"（修正済み）":"")+"</option>";}).join("");
   if(BY[cur])$("e-target").value=cur;
@@ -561,17 +580,17 @@ $("e-undo").addEventListener("click",function(){
   db.doc("berries/"+id).delete().then(function(){$("e-msg").textContent="元に戻しました";},writeFail);
 });
 $("c-drain").addEventListener("change",function(e){var i=e.target.dataset.d;if(i==null)return;var v=+e.target.value;if(!(v>0)){e.target.value=drain()[i];return;}
-  if(!WEB){S.drain[i]=v;save();return;}
+  if(LOCAL){S.drain[i]=v;save();return;}
   if(!db||!canEdit)return;
   var arr=drain().slice();arr[i]=v;$("c-drain-msg").textContent="保存しています…";
   db.doc("config/drain").set({v:arr}).then(function(){$("c-drain-msg").textContent="保存しました。全員の腹持ち時間に反映されます";},function(){$("c-drain-msg").textContent="保存できませんでした。通信状態を確かめて、もう一度入力してください";});});
-$("c-export").addEventListener("click",function(){var t=$("c-io");t.value=JSON.stringify(WEB?{stock:S.stock,saved:S.saved}:{stock:S.stock,saved:S.saved,dict:S.dict,drain:S.drain});t.select();
+$("c-export").addEventListener("click",function(){var t=$("c-io");t.value=JSON.stringify(!LOCAL?{stock:S.stock,saved:S.saved}:{stock:S.stock,saved:S.saved,dict:S.dict,drain:S.drain});t.select();
   var done=function(m){$("c-iomsg").textContent=m;};
   try{navigator.clipboard.writeText(t.value).then(function(){done("コピーしました");},function(){done("上の文字を選択してコピーしてください");});}catch(err){done("上の文字を選択してコピーしてください");}});
 $("c-import").addEventListener("click",function(){
   try{var o=JSON.parse($("c-io").value);if(typeof o!=="object"||!o)throw 0;
     if(o.stock&&typeof o.stock==="object")S.stock=o.stock;
-    if(!WEB){
+    if(LOCAL){
       if(o.dict&&typeof o.dict==="object"){S.dict=o.dict;D=cleanAll(S.dict);build();}
       if(Array.isArray(o.drain)&&o.drain.length===5&&o.drain.every(function(v){return typeof v==="number"&&v>0;}))S.drain=o.drain;
     }
@@ -581,7 +600,7 @@ $("c-import").addEventListener("click",function(){
 
 /* ---- 起動 ---- */
 var first=!S.form;
-if(!WEB){ // ダウンロード版: 辞書の編集を各自の端末に保存する
+if(LOCAL){ // ダウンロード版: 辞書の編集を各自の端末に保存する
   D=cleanAll(S.dict);canEdit=true;
   $("c-io-title").textContent="自分のデータを別の端末に移す";
   $("c-io-note").textContent="きのみの所持数・保存レシピ・自分で編集した辞書・消費速度は、この端末のブラウザに保存されます。別の端末に移すときや控えを取るときは、書き出した文字をコピーして、移す先で貼り付けて読み込んでください。";
@@ -592,7 +611,7 @@ if(!WEB){ // ダウンロード版: 辞書の編集を各自の端末に保存�
 build();
 // 初回の例: サワーでLv.3を狙う、★3以上、★3のひずみ
 loadForm(S.form||{wantP:["2-1"],"f-level":"3","f-stars":"3","f-rift":"3","f-slots":"8","f-pool":"all","f-tier":"7","f-sort":"cost"});
-$("tab-conf").hidden=WEB; // Web版はオーナーと確認できるまで出さない
+$("tab-conf").hidden=!LOCAL; // 公開ページはオーナーと確認できるまで、公開サイトでは常に出さない
 renderFlavorChips();renderPower();showTab(S.tab);runSearch();
 /* 共有辞書: 読むのは全員、書けるのはオーナーだけ */
 function refresh(){build();if(S.tab==="make")renderMake();if(S.tab==="berry")renderBerry();if(S.tab==="conf"){renderEdit();fillEdit();}runSearch();}
