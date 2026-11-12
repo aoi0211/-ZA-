@@ -57,6 +57,9 @@ textarea{font-family:ui-monospace,monospace;font-size:12px;min-height:90px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:5px 12px;font:inherit;font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .chip[aria-pressed="true"]{border-color:var(--fc,var(--accent));background:var(--fc,var(--accent));color:var(--surface);font-weight:700}
+.pgrid{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:start;margin:4px 0 6px}
+.pgrid>span{color:var(--fc);font-weight:700;font-size:12px;padding-top:7px;white-space:nowrap}
+.pw b{color:var(--ink)}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--fc);flex:none}
 .chip[aria-pressed="true"] .dot{background:var(--surface)}
 .f0{--fc:var(--sweet)}.f1{--fc:var(--spicy)}.f2{--fc:var(--sour)}.f3{--fc:var(--bitter)}.f4{--fc:var(--fresh)}
@@ -145,8 +148,8 @@ tr:last-child td{border-bottom:0}
   <div class="panel">
     <h2>ほしいドーナツの条件</h2>
     <div>
-      <div class="lbl">ほしい効果のフレーバー（2つまで）</div>
-      <div class="chips" id="f-flavors"></div>
+      <div class="lbl">ついてほしいパワー（タップで選ぶ・2系統まで）</div>
+      <div class="pgrid" id="f-flavors"></div>
       <p class="hint" id="f-flavor-hint"></p>
     </div>
     <div class="fields">
@@ -172,7 +175,7 @@ tr:last-child td{border-bottom:0}
       <label class="field"><span>いじげんきのみの解放</span>
         <select id="f-tier"></select></label>
       <label class="field"><span>並び順</span>
-        <select id="f-sort"><option value="cost">貴重なきのみを節約</option><option value="cal">ハラモチが多い順</option><option value="lv">プラスLv.が高い順</option><option value="flv">狙いのフレーバーが高い順</option></select></label>
+        <select id="f-sort"><option value="cost">貴重なきのみを節約</option><option value="cal">ハラモチが多い順</option><option value="lv">プラスLv.が高い順</option><option value="flv">ねらいのパワーが出やすい順</option></select></label>
     </div>
     <div class="row"><button class="btn" id="f-run">きのみを逆引きする</button><span class="hint" id="f-status"></span></div>
   </div>
@@ -345,12 +348,12 @@ function fmtTime(sec){sec=Math.floor(sec);var m=Math.floor(sec/60),s=sec%60;retu
 function starStr(n){return '<span class="stars">'+"★".repeat(n)+"<s>"+"★".repeat(5-n)+"</s></span>";}
 function oddsText(b){var o=ODDS[b],t=[];if(b===1)return "Lv.1";for(var i=0;i<3;i++)if(o[i]>0)t.push("Lv."+(i+1)+" "+Math.round(o[i]*100)+"%");return t.join("・");}
 
-function cardHTML(items,r,rift,actions){
+function cardHTML(items,r,rift,actions,wp){
   var rec=items.map(function(it){return "<span>"+esc(short(it[0]))+" <i>×"+it[1]+"</i></span>";}).join("");
   var flv=r.f.map(function(v,i){return '<div class="f'+i+'">'+FL[i]+"<br><b>"+v+'</b><div class="meter"><u style="width:'+Math.min(100,v/7.6)+'%"></u></div></div>';}).join("");
   var pw=[];
   r.f.forEach(function(v,i){var isTop=v===r.max;var b=budgetOf(v,r.rainbow&&isTop);if(!b)return;
-    pw.push('<div class="f'+i+'"><span>'+FL[i]+" "+v+"</span> → "+oddsText(b)+(isTop?"　"+FUSE[i]:"　※最大ではないので出にくい")+"</div>");});
+    pw.push('<div class="f'+i+'"><span>'+FL[i]+" "+v+"</span> → "+oddsText(b)+(function(){var mine=(wp||[]).filter(function(k){return +k[0]===i;}).map(pName);return (mine.length?"　ねらい：<b>"+mine.join("・")+"</b>（抽選）":isTop?"　"+FUSE[i]:"")+(isTop?"":"　※最大ではないので出にくい");})()+"</div>");});
   if(!pw.length)pw.push('<div class="hint">どのフレーバーも120未満なのでパワーはつきません</div>');
   var tags=(r.rainbow?'<span class="tag">ミックス</span>':"")+(r.stars<rift?'<span class="tag warn">ひずみより★が低い</span>':"");
   return '<div class="card"><div class="recipe">'+rec+"</div>"+
@@ -370,19 +373,29 @@ function showTab(t){
 $("tabs").addEventListener("click",function(e){var b=e.target.closest("button");if(b)showTab(b.dataset.tab);});
 
 /* ---- 逆引き ---- */
-var want=[];
+var want=[],wantP=[]; // want: フレーバー番号(最大2), wantP: "フレーバー-番号" のパワー指定
+var PMIN={"0-0":420}; // かがやきパワーはスイート420以上が目安
+function pName(k){var n=POWERS[+k[0]][+k.slice(2)][0];return n.indexOf("メガ")===0?n:n.split("：")[0];}
+function syncWant(){want=[];wantP.forEach(function(k){var f=+k[0];if(want.indexOf(f)<0)want.push(f);});}
 var LEVELREQ={1:function(b){return b>=1;},2:function(b){return b>=3;},3:function(b){return b>=5;},4:function(b){return b>=6;},5:function(b){return b>=9;}};
 function renderFlavorChips(){
-  $("f-flavors").innerHTML=FL.map(function(n,i){return '<button class="chip f'+i+'" data-i="'+i+'" aria-pressed="'+(want.indexOf(i)>=0)+'"><span class="dot"></span>'+n+"</button>";}).join("");
-  $("f-flavor-hint").innerHTML=want.length?want.map(function(i){return "<b>"+FL[i]+"</b>："+FUSE[i]+"（"+POWERS[i].map(function(p){return p[0].split("：")[0];}).filter(function(x,j,a){return a.indexOf(x)===j;}).join("・")+"）";}).join("<br>")+(want.length===2?"<br>2つ選ぶと、両方が条件を満たし上位2つになるレシピを探します。同値ならミックスです。":""):"選ばないときは、星・ハラモチ・プラスLv.だけで探します。";
+  $("f-flavors").innerHTML=POWERS.map(function(g,f){return '<span class="f'+f+'">'+FL[f]+'</span><div class="chips">'+g.map(function(p,x){var k=f+"-"+x;return '<button class="chip f'+f+'" data-k="'+k+'" aria-pressed="'+(wantP.indexOf(k)>=0)+'">'+pName(k)+"</button>";}).join("")+"</div>";}).join("");
+  var h=wantP.map(function(k){var p=POWERS[+k[0]][+k.slice(2)];return "<b>"+pName(k)+"</b>："+p[1]+"（"+p[2].map(function(v,l){return "Lv."+(l+1)+" "+v;}).join("／")+"）";});
+  want.forEach(function(f){
+    var others=POWERS[f].map(function(p,x){return f+"-"+x;}).filter(function(k){return wantP.indexOf(k)<0;}).map(pName);
+    h.push("→ <b>"+FL[f]+"</b>がいちばん高いドーナツを探します。"+(others.length?"パワーの種類は作成時の抽選なので、同じ"+FL[f]+"の "+others.join("・")+" が出ることもあります。":""));});
+  if(wantP.indexOf("0-0")>=0)h.push("かがやきパワーはスイート420以上のレシピに絞ります。");
+  if(want.length===2)h.push("2系統を選ぶと、両方が条件を満たして上位2つになるレシピを探します。同値ならミックスです。");
+  $("f-flavor-hint").innerHTML=wantP.length?h.join("<br>"):"選ばないときは、星・ハラモチ・プラスLv.だけで探します。";
 }
-$("f-flavors").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;var i=+b.dataset.i,p=want.indexOf(i);
-  if(p>=0)want.splice(p,1);else{want.push(i);if(want.length>2)want.shift();}renderFlavorChips();});
+$("f-flavors").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;var k=b.dataset.k,p=wantP.indexOf(k);
+  if(p>=0)wantP.splice(p,1);else{wantP.push(k);syncWant();if(want.length>2){var old=want[0];wantP=wantP.filter(function(x){return +x[0]!==old;});}}
+  syncWant();renderFlavorChips();});
 $("f-tier").innerHTML=TIERS.slice(1).map(function(t,i){return '<option value="'+(i+1)+'">'+(i===6?"すべて解放（"+t+"）":t+"まで")+"</option>";}).reverse().join("");
 
 var FIELDS=["f-level","f-stars","f-cal","f-min","f-rift","f-lv","f-slots","f-pool","f-tier","f-sort"];
-function readForm(){var o={want:want.slice()};FIELDS.forEach(function(id){o[id]=$(id).value;});return o;}
-function loadForm(o){want=(o.want||[]).slice(0,2);FIELDS.forEach(function(id){if(o[id]!=null)$(id).value=o[id];});}
+function readForm(){var o={wantP:wantP.slice()};FIELDS.forEach(function(id){o[id]=$(id).value;});return o;}
+function loadForm(o){wantP=(o.wantP||(o.want||[]).map(function(f){return f+"-0";})).filter(function(k){return /^[0-4]-\d$/.test(k)&&POWERS[+k[0]][+k.slice(2)];});syncWant();if(want.length>2){wantP=[];want=[];}FIELDS.forEach(function(id){if(o[id]!=null)$(id).value=o[id];});}
 var lastResults=[];
 function runSearch(){
   var q=readForm();S.form=q;save();
@@ -395,7 +408,8 @@ function runSearch(){
     if(b.kind==="hyper"&&b.tier>tier)return false;
     return b.sum>0||b.cal>0;});
   var n=P.length,lim=P.map(function(b){return pool==="stock"?Math.min(8,S.stock[b.id]):8;});
-  var need=LEVELREQ[level],w0=want[0],w1=want.length>1?want[1]:-1,out=[],checked=0;
+  var need=LEVELREQ[level],w0=want.length?want[0]:-1,w1=want.length>1?want[1]:-1,out=[],checked=0,mins=[0,0,0,0,0],wp=wantP.slice();
+  wp.forEach(function(k){var f=+k[0];mins[f]=Math.max(mins[f],PMIN[k]||0);});
   var key=sort==="cal"?function(r){return -r.cal;}:sort==="lv"?function(r){return -r.lv*10000-r.cal;}:sort==="flv"?function(r){return -(want.length?Math.min.apply(null,want.map(function(i){return r.f[i];})):r.total);}:function(r){return r.cost*100000-r.cal;};
   function test(i,a,j,b,k,c){
     checked++;
@@ -407,6 +421,7 @@ function runSearch(){
     if(w0>=0){
       var lo=w1>=0?Math.min(f[w0],f[w1]):f[w0];
       for(var x=0;x<5;x++)if(x!==w0&&x!==w1&&f[x]>=lo)return;
+      if(f[w0]<mins[w0]||(w1>=0&&f[w1]<mins[w1]))return;
       if(!need(budgetOf(f[w0],r.rainbow&&f[w0]===r.max)))return;
       if(w1>=0&&!need(budgetOf(f[w1],r.rainbow&&f[w1]===r.max)))return;
     }
@@ -429,7 +444,7 @@ function runSearch(){
   var el=$("f-results");
   if(!n){el.innerHTML='<div class="card"><p>使えるきのみがありません。「きのみ」タブで所持数を入れるか、「使うきのみ」を変えてください。</p></div>';return;}
   if(!out.length){el.innerHTML='<div class="card"><p><b>条件に合うレシピがありません。</b></p><p class="hint">きのみ3種類までの組み合わせで探しています。パワーLv.の狙いを下げる、使えるきのみの数を増やす、いじげんきのみの解放を進める、のどれかで見つかりやすくなります。</p></div>';return;}
-  el.innerHTML=lastResults.map(function(r,x){return cardHTML(r.items,r,rift,'<button class="btn ghost" data-open="'+x+'">「作る」で開く</button><button class="btn plain" data-keep="'+x+'">保存</button>');}).join("");
+  el.innerHTML=lastResults.map(function(r,x){return cardHTML(r.items,r,rift,'<button class="btn ghost" data-open="'+x+'">「作る」で開く</button><button class="btn plain" data-keep="'+x+'">保存</button>',wp);}).join("");
 }
 $("f-run").addEventListener("click",function(){$("f-status").textContent="さがしています…";setTimeout(runSearch,20);});
 $("f-results").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;
@@ -554,7 +569,7 @@ $("c-import").addEventListener("click",function(){
 var first=!S.form;
 build();
 // 初回の例: サワーでLv.3を狙う、★3以上、★3のひずみ
-loadForm(S.form||{want:[2],"f-level":"3","f-stars":"3","f-rift":"3","f-slots":"8","f-pool":"all","f-tier":"7","f-sort":"cost"});
+loadForm(S.form||{wantP:["2-1"],"f-level":"3","f-stars":"3","f-rift":"3","f-slots":"8","f-pool":"all","f-tier":"7","f-sort":"cost"});
 renderFlavorChips();renderPower();showTab(S.tab);runSearch();
 /* 共有辞書: 読むのは全員、書けるのはオーナーだけ */
 function refresh(){build();if(S.tab==="make")renderMake();if(S.tab==="berry")renderBerry();if(S.tab==="conf"){renderEdit();fillEdit();}runSearch();}
@@ -568,7 +583,7 @@ if(window.claude&&window.claude.use){
     window.claude.use("user").then(function(u){return u?u.isOwner():false;}).then(function(ok){canEdit=!!ok;renderEdit();fillEdit();},function(){});
   },function(){});
 }
-if(first)$("f-status").textContent="例：サワーでLv.3を狙う★3以上のレシピ。条件を変えて逆引きしてください";
+if(first)$("f-status").textContent="例：どうぐパワーLv.3を狙う★3以上のレシピ。ほしいパワーを選んで逆引きしてください";
 })();
 </script>
 <!--ARTIFACT-END-->
