@@ -78,6 +78,9 @@ textarea{font-family:ui-monospace,monospace;font-size:12px;min-height:90px}
 .btn.ghost{background:none;color:var(--accent);padding:5px 10px;font-size:13px}
 .btn.plain{border-color:var(--line);background:none;color:var(--ink);padding:5px 10px;font-size:13px;font-weight:600}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+details.panel:not([open]){display:block}
+.sumline{white-space:pre-line;display:block;font-family:var(--body);font-weight:400;font-size:12.5px;color:var(--muted);margin-top:2px}
+.dbody{display:flex;flex-direction:column;gap:12px;margin-top:12px}
 summary{cursor:pointer;font-family:var(--display);font-weight:700;font-size:14px}
 .about{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:8px;max-width:68ch}
 .about b{color:var(--ink)}
@@ -198,8 +201,9 @@ tr:last-child td{border-bottom:0}
     </div>
     <div class="row"><button class="btn" id="f-run">きのみを逆引きする</button></div>
   </div>
-  <div class="panel" id="f-refine">
-    <div class="row"><h2>絞り込みと並び順</h2><button class="btn plain" id="f-reset">絞り込みを消す</button></div>
+  <details class="panel" id="f-refine">
+    <summary>絞り込みと並び順<span class="sumline" id="f-refine-sum"></span></summary>
+    <div class="dbody">
     <input type="hidden" id="f-sort" value="cost">
     <table class="ftable">
       <thead><tr><th>項目</th><th>絞り込み</th><th>並び順</th></tr></thead>
@@ -226,7 +230,9 @@ tr:last-child td{border-bottom:0}
       </tbody>
     </table>
     <p class="note">ここを変えると、すぐに探し直します。貴重さは、通常きのみを1個＝1、いじげんきのみを解放が遅いものほど高く1個＝3〜20として足した数です。各レシピにも表示しています。</p>
-  </div>
+    <div class="row"><button class="btn plain" id="f-reset">絞り込みを消す</button></div>
+    </div>
+  </details>
   <p class="hint" id="f-status" role="status"></p>
   <div class="cards" id="f-results"></div>
 </section>
@@ -455,12 +461,24 @@ $("f-tier").innerHTML=TIERS.slice(1).map(function(t,i){return '<option value="'+
 
 var FIELDS=["f-level","f-stars","f-cal","f-min","f-rift","f-lv","f-slots","f-pool","f-tier","f-sort","f-cost","f-flv","f-count"];
 var REFINE=["f-stars","f-cal","f-min","f-lv","f-cost","f-flv","f-count"];
+var SORTNAME={cost:"貴重なきのみを節約（少ない順）",cal:"ハラモチ（多い順）",lv:"プラスLv.（高い順）",flv:"ねらいのパワーの出やすさ（高い順）",stars:"星の数（多い順）",count:"使うきのみの個数（少ない順）"};
+function refineSummary(){
+  var v=function(id){return $(id).value;},f=[];
+  if(+v("f-cost"))f.push("貴重さ"+v("f-cost")+"以下");
+  if(+v("f-cal"))f.push(v("f-cal")+"kcal以上");
+  if(+v("f-min"))f.push(v("f-min")+"分以上");
+  if(+v("f-lv"))f.push("プラスLv."+v("f-lv")+"以上");
+  if(+v("f-flv"))f.push("ねらいのフレーバー"+v("f-flv")+"以上");
+  if(+v("f-stars"))f.push("★"+v("f-stars")+(v("f-stars")==="5"?"":"以上"));
+  if(+v("f-count"))f.push("きのみ"+v("f-count")+"個以下");
+  $("f-refine-sum").textContent="並び順："+(SORTNAME[v("f-sort")]||SORTNAME.cost)+"\n絞り込み："+(f.length?f.join("・"):"なし");
+}
 function syncSort(){var r=$("f-sort-"+$("f-sort").value)||$("f-sort-cost");r.checked=true;$("f-sort").value=r.value;}
 function readForm(){var o={wantP:wantP.slice()};FIELDS.forEach(function(id){o[id]=$(id).value;});return o;}
 function loadForm(o){wantP=(o.wantP||(o.want||[]).map(function(f){return f+"-0";})).filter(function(k){return /^[0-4]-\d$/.test(k)&&POWERS[+k[0]][+k.slice(2)];});syncWant();if(want.length>2){wantP=[];want=[];}FIELDS.forEach(function(id){if(o[id]!=null)$(id).value=o[id];});syncSort();}
 var lastResults=[];
 function runSearch(){
-  var q=readForm();S.form=q;save();
+  var q=readForm();S.form=q;save();refineSummary();
   var level=+q["f-level"],minStars=+q["f-stars"],rift=+q["f-rift"],drainRate=drain()[rift-1];
   var minCal=Math.max(+q["f-cal"]||0,(+q["f-min"]||0)*60*drainRate),minLv=+q["f-lv"]||0,maxCost=+q["f-cost"]||Infinity,minFlv=+q["f-flv"]||0,maxCount=+q["f-count"]||8,slots=+q["f-slots"],pool=q["f-pool"],tier=+q["f-tier"],sort=q["f-sort"];
   var P=B.filter(function(b){
