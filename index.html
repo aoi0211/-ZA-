@@ -132,15 +132,15 @@ thead th[class^="f"]{color:var(--fc);font-weight:700;font-size:13px}
 .ftable{font-size:13px}
 .ftable th,.ftable td{white-space:normal;text-align:left;vertical-align:middle;padding:8px 6px;position:static;background:none}
 .ftable thead th{cursor:default;background:var(--sunken)}
-.ftable td:first-child{font-weight:700;width:34%}
-.ftable td:last-child,.ftable th:last-child{width:26%}
+.ftable td:first-child{font-weight:700;width:46%}
 .ftable small{display:block;font-weight:400;font-size:11px;color:var(--muted);line-height:1.35}
 .ftable input[type=number],.ftable select{width:78px;padding:5px 6px}
 .ftable select{width:auto;max-width:100%}
 .fin{display:flex;align-items:center;gap:5px;white-space:nowrap;color:var(--muted);font-size:12px}
 .fin+.fin{margin-top:5px}
-.srt{display:inline-flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap}
-.srt input{accent-color:var(--accent);width:17px;height:17px;margin:0}
+.sortrow{display:flex;align-items:center;gap:10px}
+.sortrow span{font-family:var(--display);font-weight:700;font-size:14px;white-space:nowrap}
+.sortrow select{flex:1;min-width:0;max-width:340px;background:var(--surface)}
 td.z{color:var(--line)}
 td.v{color:var(--fc);font-weight:700}
 tr:last-child td{border-bottom:0}
@@ -202,37 +202,39 @@ tr:last-child td{border-bottom:0}
     <div class="row"><button class="btn" id="f-run">きのみを逆引きする</button></div>
   </div>
   <details class="panel" id="f-refine">
-    <summary>絞り込みと並び順<span class="sumline" id="f-refine-sum"></span></summary>
+    <summary>絞り込み<span class="sumline" id="f-refine-sum"></span></summary>
     <div class="dbody">
-    <input type="hidden" id="f-sort" value="cost">
     <table class="ftable">
-      <thead><tr><th>項目</th><th>絞り込み</th><th>並び順</th></tr></thead>
+      <thead><tr><th>項目</th><th>絞り込み</th></tr></thead>
       <tbody>
         <tr><td>貴重なきのみを節約<small>使うきのみの貴重さの合計</small></td>
-            <td><span class="fin"><input type="number" id="f-cost" min="0" inputmode="numeric" placeholder="例 40" aria-label="貴重さの上限">以下</span></td>
-            <td><label class="srt"><input type="radio" name="f-sortr" id="f-sort-cost" value="cost"> 少ない順</label></td></tr>
+            <td><span class="fin"><input type="number" id="f-cost" min="0" inputmode="numeric" placeholder="例 40" aria-label="貴重さの上限">以下</span></td></tr>
         <tr><td>ハラモチ<small>腹持ち時間は上の「入るひずみの★」で計算</small></td>
             <td><span class="fin"><input type="number" id="f-cal" min="0" step="50" inputmode="numeric" placeholder="例 1500" aria-label="ハラモチの下限">kcal以上</span>
-                <span class="fin"><input type="number" id="f-min" min="0" step="0.5" inputmode="decimal" placeholder="例 5" aria-label="腹持ち時間の下限">分以上</span></td>
-            <td><label class="srt"><input type="radio" name="f-sortr" id="f-sort-cal" value="cal"> 多い順</label></td></tr>
+                <span class="fin"><input type="number" id="f-min" min="0" step="0.5" inputmode="decimal" placeholder="例 5" aria-label="腹持ち時間の下限">分以上</span></td></tr>
         <tr><td>プラスLv.</td>
-            <td><span class="fin"><input type="number" id="f-lv" min="0" max="100" inputmode="numeric" placeholder="例 40" aria-label="プラスレベルの下限">以上</span></td>
-            <td><label class="srt"><input type="radio" name="f-sortr" id="f-sort-lv" value="lv"> 高い順</label></td></tr>
+            <td><span class="fin"><input type="number" id="f-lv" min="0" max="100" inputmode="numeric" placeholder="例 40" aria-label="プラスレベルの下限">以上</span></td></tr>
         <tr><td>ねらいのパワーの出やすさ<small>ねらいのフレーバーの数値</small></td>
-            <td><span class="fin"><input type="number" id="f-flv" min="0" step="10" inputmode="numeric" placeholder="例 420" aria-label="ねらいのフレーバー数値の下限">以上</span></td>
-            <td><label class="srt"><input type="radio" name="f-sortr" id="f-sort-flv" value="flv"> 高い順</label></td></tr>
+            <td><span class="fin"><input type="number" id="f-flv" min="0" step="10" inputmode="numeric" placeholder="例 420" aria-label="ねらいのフレーバー数値の下限">以上</span></td></tr>
         <tr><td>星の数<small>フレーバーランク</small></td>
-            <td><select id="f-stars" aria-label="星の数の絞り込み"><option value="0">指定なし</option><option value="1">★1以上</option><option value="2">★2以上</option><option value="3">★3以上</option><option value="4">★4以上</option><option value="5">★5</option></select></td>
-            <td><label class="srt"><input type="radio" name="f-sortr" id="f-sort-stars" value="stars"> 多い順</label></td></tr>
+            <td><select id="f-stars" aria-label="星の数の絞り込み"><option value="0">指定なし</option><option value="1">★1以上</option><option value="2">★2以上</option><option value="3">★3以上</option><option value="4">★4以上</option><option value="5">★5</option></select></td></tr>
         <tr><td>使うきのみの個数</td>
-            <td><span class="fin"><input type="number" id="f-count" min="3" max="8" inputmode="numeric" placeholder="例 6" aria-label="きのみの個数の上限">個以下</span></td>
-            <td><label class="srt"><input type="radio" name="f-sortr" id="f-sort-count" value="count"> 少ない順</label></td></tr>
+            <td><span class="fin"><input type="number" id="f-count" min="3" max="8" inputmode="numeric" placeholder="例 6" aria-label="きのみの個数の上限">個以下</span></td></tr>
       </tbody>
     </table>
-    <p class="note">ここを変えると、すぐに探し直します。貴重さは、通常きのみを1個＝1、いじげんきのみを解放が遅いものほど高く1個＝3〜20として足した数です。各レシピにも表示しています。</p>
+    <p class="note">ここを変えると、すぐに探し直します。並び順は、この表の下でいつでも選べます。貴重さは、通常きのみを1個＝1、いじげんきのみを解放が遅いものほど高く1個＝3〜20として足した数です。各レシピにも表示しています。</p>
     <div class="row"><button class="btn plain" id="f-reset">絞り込みを消す</button></div>
     </div>
   </details>
+  <label class="sortrow"><span>並び順</span>
+    <select id="f-sort">
+      <option value="cost">貴重なきのみを節約（少ない順）</option>
+      <option value="cal">ハラモチ（多い順）</option>
+      <option value="lv">プラスLv.（高い順）</option>
+      <option value="flv">ねらいのパワーの出やすさ（高い順）</option>
+      <option value="stars">星の数（多い順）</option>
+      <option value="count">使うきのみの個数（少ない順）</option>
+    </select></label>
   <p class="hint" id="f-status" role="status"></p>
   <div class="cards" id="f-results"></div>
 </section>
@@ -461,7 +463,6 @@ $("f-tier").innerHTML=TIERS.slice(1).map(function(t,i){return '<option value="'+
 
 var FIELDS=["f-level","f-stars","f-cal","f-min","f-rift","f-lv","f-slots","f-pool","f-tier","f-sort","f-cost","f-flv","f-count"];
 var REFINE=["f-stars","f-cal","f-min","f-lv","f-cost","f-flv","f-count"];
-var SORTNAME={cost:"貴重なきのみを節約（少ない順）",cal:"ハラモチ（多い順）",lv:"プラスLv.（高い順）",flv:"ねらいのパワーの出やすさ（高い順）",stars:"星の数（多い順）",count:"使うきのみの個数（少ない順）"};
 function refineSummary(){
   var v=function(id){return $(id).value;},f=[];
   if(+v("f-cost"))f.push("貴重さ"+v("f-cost")+"以下");
@@ -471,9 +472,9 @@ function refineSummary(){
   if(+v("f-flv"))f.push("ねらいのフレーバー"+v("f-flv")+"以上");
   if(+v("f-stars"))f.push("★"+v("f-stars")+(v("f-stars")==="5"?"":"以上"));
   if(+v("f-count"))f.push("きのみ"+v("f-count")+"個以下");
-  $("f-refine-sum").textContent="並び順："+(SORTNAME[v("f-sort")]||SORTNAME.cost)+"\n絞り込み："+(f.length?f.join("・"):"なし");
+  $("f-refine-sum").textContent=f.length?"いま効いている絞り込み："+f.join("・"):"いまは絞り込みなし";
 }
-function syncSort(){var r=$("f-sort-"+$("f-sort").value)||$("f-sort-cost");r.checked=true;$("f-sort").value=r.value;}
+function syncSort(){if(!$("f-sort").value)$("f-sort").value="cost";}
 function readForm(){var o={wantP:wantP.slice()};FIELDS.forEach(function(id){o[id]=$(id).value;});return o;}
 function loadForm(o){wantP=(o.wantP||(o.want||[]).map(function(f){return f+"-0";})).filter(function(k){return /^[0-4]-\d$/.test(k)&&POWERS[+k[0]][+k.slice(2)];});syncWant();if(want.length>2){wantP=[];want=[];}FIELDS.forEach(function(id){if(o[id]!=null)$(id).value=o[id];});syncSort();}
 var lastResults=[];
@@ -531,7 +532,8 @@ function runSearch(){
 function goSearch(){$("f-status").textContent="さがしています…";setTimeout(runSearch,20);}
 $("f-run").addEventListener("click",goSearch);
 var refineTimer=0;
-$("f-refine").addEventListener("change",function(e){if(e.target.name==="f-sortr")$("f-sort").value=e.target.value;clearTimeout(refineTimer);goSearch();});
+$("f-refine").addEventListener("change",function(){clearTimeout(refineTimer);goSearch();});
+$("f-sort").addEventListener("change",goSearch);
 $("f-refine").addEventListener("input",function(e){if(e.target.type!=="number")return;clearTimeout(refineTimer);refineTimer=setTimeout(goSearch,600);});
 $("f-reset").addEventListener("click",function(){REFINE.forEach(function(id){$(id).value=id==="f-stars"?"0":"";});goSearch();});
 $("f-results").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;
