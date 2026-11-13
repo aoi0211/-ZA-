@@ -138,6 +138,11 @@ thead th[class^="f"]{color:var(--fc);font-weight:700;font-size:13px}
 .ftable select{width:auto;max-width:100%}
 .fin{display:flex;align-items:center;gap:5px;white-space:nowrap;color:var(--muted);font-size:12px}
 .fin+.fin{margin-top:5px}
+.ftable tr.on td{background:var(--accent-soft)}
+.ftable tr.on td:first-child{color:var(--accent)}
+.toast{position:fixed;left:0;right:0;margin-inline:auto;width:fit-content;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateY(12px);max-width:calc(100% - 32px);background:var(--ink);color:var(--bg);font-weight:700;font-size:13.5px;padding:9px 16px;border-radius:999px;z-index:20;opacity:0;pointer-events:none;text-align:center}
+.toast.show{opacity:1;transform:none}
+@media (prefers-reduced-motion:no-preference){.toast{transition:opacity .18s ease-out,transform .18s ease-out}}
 .bchips{margin-bottom:5px}
 .bchips:empty{display:none}
 .bchips .chip{padding:3px 9px;font-size:12.5px;border-color:var(--fc,var(--line))}
@@ -205,12 +210,12 @@ tr:last-child td{border-bottom:0}
     <div class="row"><button class="btn" id="f-run">きのみを逆引きする</button></div>
   </div>
   <details class="panel" id="f-refine">
-    <summary>絞り込み<span class="sumline" id="f-refine-sum"></span></summary>
+    <summary>絞り込み <span class="tag" id="f-refine-count" hidden></span><span class="sumline" id="f-refine-sum"></span></summary>
     <div class="dbody">
     <table class="ftable">
       <thead><tr><th>項目</th><th>絞り込み</th></tr></thead>
       <tbody>
-        <tr><td>貴重なきのみを節約<small>使うきのみの貴重さの合計</small></td>
+        <tr><td>貴重なきのみを節約<small>貴重さの合計。通常きのみ1個＝1、いじげんきのみは解放が遅いほど高く1個＝3〜20</small></td>
             <td><span class="fin"><input type="number" id="f-cost" min="0" inputmode="numeric" placeholder="例 40" aria-label="貴重さの上限">以下</span></td></tr>
         <tr><td>ハラモチ<small>腹持ち時間は上の「入るひずみの★」で計算</small></td>
             <td><span class="fin"><input type="number" id="f-cal" min="0" step="50" inputmode="numeric" placeholder="例 1500" aria-label="ハラモチの下限">kcal以上</span>
@@ -229,7 +234,6 @@ tr:last-child td{border-bottom:0}
             <td><div class="chips bchips" id="f-ban-chips"></div><select id="f-ban-add" aria-label="含まないきのみを足す"></select></td></tr>
       </tbody>
     </table>
-    <p class="note">ここを変えると、すぐに探し直します。並び順は、この表の下でいつでも選べます。貴重さは、通常きのみを1個＝1、いじげんきのみを解放が遅いものほど高く1個＝3〜20として足した数です。各レシピにも表示しています。</p>
     <div class="row"><button class="btn plain" id="f-reset">絞り込みを消す</button></div>
     </div>
   </details>
@@ -331,6 +335,7 @@ tr:last-child td{border-bottom:0}
   <p>個人が作成した非公式のファンツールです。任天堂株式会社、株式会社ポケモン、株式会社ゲームフリーク、株式会社クリーチャーズとは関係ありません。ポケットモンスター・ポケモン・Pokémonは各社の登録商標です。数値は攻略情報をもとにした目安で、ゲームの更新で変わることがあります。</p>
 </footer>
 <noscript><p style="padding:16px">このツールを使うにはJavaScriptを有効にしてください。</p></noscript>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 </main>
 
 <script>
@@ -498,13 +503,27 @@ function refineSummary(){
   if(useB.length)f.push("含む "+useB.map(function(id){return short(BY[id]);}).join("・"));
   if(banB.length)f.push("含まない "+banB.map(function(id){return short(BY[id]);}).join("・"));
   $("f-refine-sum").textContent=f.length?"いま効いている絞り込み："+f.join("、"):"いまは絞り込みなし";
+  $("f-refine-count").hidden=!f.length;$("f-refine-count").textContent=f.length+"件適用中";
+  Array.prototype.forEach.call($("f-refine").querySelectorAll("tbody tr"),function(tr){
+    var on=!!tr.querySelector(".bchips .chip");
+    Array.prototype.forEach.call(tr.querySelectorAll("input[type=number],select[id=f-stars]"),function(c){if(+c.value)on=true;});
+    tr.classList.toggle("on",on);});
 }
 function syncSort(){if(!$("f-sort").value)$("f-sort").value="cost";}
 function readForm(){var o={wantP:wantP.slice(),use:useB.slice(),ban:banB.slice()};FIELDS.forEach(function(id){o[id]=$(id).value;});return o;}
 function loadForm(o){wantP=(o.wantP||(o.want||[]).map(function(f){return f+"-0";})).filter(function(k){return /^[0-4]-\d$/.test(k)&&POWERS[+k[0]][+k.slice(2)];});syncWant();if(want.length>2){wantP=[];want=[];}FIELDS.forEach(function(id){if(o[id]!=null)$(id).value=o[id];});syncSort();
   useB=Array.isArray(o.use)?o.use.slice(0,3):[];banB=Array.isArray(o.ban)?o.ban.slice():[];renderBerryFilter();}
 var lastResults=[];
-function runSearch(){
+var lastCount=0,lastSig="",toastTimer=0;
+function toast(msg){var t=$("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove("show");},2200);}
+function runSearch(why){
+  searchCore();lastSig=JSON.stringify(readForm());
+  var c=lastCount>=300?"300件以上":lastCount?lastCount+"件":"該当なし";
+  if(why==="filter")toast("絞り込みを反映しました："+c);
+  else if(why==="sort")toast("並び替えました");
+  else if(why==="reset")toast("絞り込みを消しました："+c);
+}
+function searchCore(){
   var q=readForm();S.form=q;save();refineSummary();
   var level=+q["f-level"],minStars=+q["f-stars"],rift=+q["f-rift"],drainRate=drain()[rift-1];
   var minCal=Math.max(+q["f-cal"]||0,(+q["f-min"]||0)*60*drainRate),minLv=+q["f-lv"]||0,maxCost=+q["f-cost"]||Infinity,minFlv=+q["f-flv"]||0,maxCount=+q["f-count"]||8,slots=+q["f-slots"],pool=q["f-pool"],tier=+q["f-tier"],sort=q["f-sort"];
@@ -552,6 +571,7 @@ function runSearch(){
   }
   out.sort(function(p,q){return p.key-q.key;});
   lastResults=out.slice(0,40);
+  lastCount=out.length;
   $("f-status").textContent=checked.toLocaleString()+"通りを調べて "+(out.length>=300?"300件以上":out.length+"件")+" 見つかりました"+(out.length>40?"（上位40件を表示）":"");
   var el=$("f-results");
   if(missing.length){el.innerHTML='<div class="card"><p><b>「'+missing.map(function(id){return esc(short(BY[id]));}).join("・")+'」は、いまの条件では使えません。</b></p><p class="hint">上の「使うきのみ」や「いじげんきのみの解放」で外れています。その条件を変えるか、絞り込みの「きのみ：含む」から外してください。</p></div>';return;}
@@ -559,16 +579,18 @@ function runSearch(){
   if(!out.length){el.innerHTML='<div class="card"><p><b>条件に合うレシピがありません。</b></p><p class="hint">きのみ3種類までの組み合わせで探しています。パワーLv.の狙いを下げる、絞り込みをゆるめる、使えるきのみの数を増やす、いじげんきのみの解放を進める、のどれかで見つかりやすくなります。</p></div>';return;}
   el.innerHTML=lastResults.map(function(r,x){return cardHTML(r.items,r,rift,'<button class="btn ghost" data-open="'+x+'">「作る」で開く</button><button class="btn plain" data-keep="'+x+'">保存</button>',wp);}).join("");
 }
-function goSearch(){$("f-status").textContent="さがしています…";setTimeout(runSearch,20);}
-$("f-run").addEventListener("click",goSearch);
+function goSearch(why){
+  if((why==="filter"||why==="sort")&&JSON.stringify(readForm())===lastSig)return; // 変わっていなければ探し直さない
+  $("f-status").textContent="さがしています…";setTimeout(function(){runSearch(why);},20);}
+$("f-run").addEventListener("click",function(){goSearch();});
 var refineTimer=0;
-$("f-refine").addEventListener("change",function(){clearTimeout(refineTimer);goSearch();});
-$("f-sort").addEventListener("change",goSearch);
-$("f-refine").addEventListener("input",function(e){if(e.target.type!=="number")return;clearTimeout(refineTimer);refineTimer=setTimeout(goSearch,600);});
-$("f-reset").addEventListener("click",function(){REFINE.forEach(function(id){$(id).value=id==="f-stars"?"0":"";});useB=[];banB=[];renderBerryFilter();goSearch();});
+$("f-refine").addEventListener("change",function(){clearTimeout(refineTimer);goSearch("filter");});
+$("f-sort").addEventListener("change",function(){goSearch("sort");});
+$("f-refine").addEventListener("input",function(e){if(e.target.type!=="number")return;clearTimeout(refineTimer);refineTimer=setTimeout(function(){goSearch("filter");},600);});
+$("f-reset").addEventListener("click",function(){REFINE.forEach(function(id){$(id).value=id==="f-stars"?"0":"";});useB=[];banB=[];renderBerryFilter();goSearch("reset");});
 $("f-refine").addEventListener("click",function(e){var b=e.target.closest("[data-use],[data-ban]");if(!b)return;
   if(b.dataset.use)useB=useB.filter(function(x){return x!==b.dataset.use;});else banB=banB.filter(function(x){return x!==b.dataset.ban;});
-  renderBerryFilter();goSearch();});
+  renderBerryFilter();goSearch("filter");});
 $("f-results").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;
   var r=lastResults[b.dataset.open!=null?b.dataset.open:b.dataset.keep];if(!r)return;
   var ids=[];r.items.forEach(function(it){for(var c=0;c<it[1];c++)ids.push(it[0].id);});
