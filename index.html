@@ -138,6 +138,9 @@ thead th[class^="f"]{color:var(--fc);font-weight:700;font-size:13px}
 .ftable select{width:auto;max-width:100%}
 .fin{display:flex;align-items:center;gap:5px;white-space:nowrap;color:var(--muted);font-size:12px}
 .fin+.fin{margin-top:5px}
+.bchips{margin-bottom:5px}
+.bchips:empty{display:none}
+.bchips .chip{padding:3px 9px;font-size:12.5px;border-color:var(--fc,var(--line))}
 .sortrow{display:flex;align-items:center;gap:10px}
 .sortrow span{font-family:var(--display);font-weight:700;font-size:14px;white-space:nowrap}
 .sortrow select{flex:1;min-width:0;max-width:340px;background:var(--surface)}
@@ -220,6 +223,10 @@ tr:last-child td{border-bottom:0}
             <td><select id="f-stars" aria-label="星の数の絞り込み"><option value="0">指定なし</option><option value="1">★1以上</option><option value="2">★2以上</option><option value="3">★3以上</option><option value="4">★4以上</option><option value="5">★5</option></select></td></tr>
         <tr><td>使うきのみの個数</td>
             <td><span class="fin"><input type="number" id="f-count" min="3" max="8" inputmode="numeric" placeholder="例 6" aria-label="きのみの個数の上限">個以下</span></td></tr>
+        <tr><td>必ず使うきのみ<small>このきのみが入ったレシピだけ（3種類まで）</small></td>
+            <td><div class="chips bchips" id="f-use-chips"></div><select id="f-use-add" aria-label="必ず使うきのみを足す"></select></td></tr>
+        <tr><td>使わないきのみ<small>このきのみを外したレシピだけ</small></td>
+            <td><div class="chips bchips" id="f-ban-chips"></div><select id="f-ban-add" aria-label="使わないきのみを足す"></select></td></tr>
       </tbody>
     </table>
     <p class="note">ここを変えると、すぐに探し直します。並び順は、この表の下でいつでも選べます。貴重さは、通常きのみを1個＝1、いじげんきのみを解放が遅いものほど高く1個＝3〜20として足した数です。各レシピにも表示しています。</p>
@@ -463,6 +470,22 @@ $("f-tier").innerHTML=TIERS.slice(1).map(function(t,i){return '<option value="'+
 
 var FIELDS=["f-level","f-stars","f-cal","f-min","f-rift","f-lv","f-slots","f-pool","f-tier","f-sort","f-cost","f-flv","f-count"];
 var REFINE=["f-stars","f-cal","f-min","f-lv","f-cost","f-flv","f-count"];
+var useB=[],banB=[]; // 必ず使う / 使わない きのみのid
+function renderBerryFilter(){
+  useB=useB.filter(function(id){return BY[id];});banB=banB.filter(function(id){return BY[id];});
+  var chip=function(kind){return function(id){var b=BY[id];return '<button class="chip f'+b.top+'" data-'+kind+'="'+id+'" title="タップで外す">'+esc(short(b))+" ✕</button>";};};
+  $("f-use-chips").innerHTML=useB.map(chip("use")).join("");
+  $("f-ban-chips").innerHTML=banB.map(chip("ban")).join("");
+  var groups=[["hyper","いじげんきのみ"],["normal","通常きのみ"],["custom","追加されたきのみ"]];
+  var opts=function(skip){return '<option value="">＋ きのみを選ぶ</option>'+groups.map(function(g){
+    var list=B.filter(function(b){return b.kind===g[0]&&skip.indexOf(b.id)<0;});
+    return list.length?'<optgroup label="'+g[1]+'">'+list.map(function(b){return '<option value="'+b.id+'">'+esc(short(b))+"</option>";}).join("")+"</optgroup>":"";}).join("");};
+  $("f-use-add").innerHTML=opts(useB);$("f-ban-add").innerHTML=opts(banB);
+}
+$("f-use-add").addEventListener("change",function(e){var id=e.target.value;if(!id)return;
+  useB.push(id);if(useB.length>3)useB.shift();banB=banB.filter(function(x){return x!==id;});renderBerryFilter();});
+$("f-ban-add").addEventListener("change",function(e){var id=e.target.value;if(!id)return;
+  banB.push(id);useB=useB.filter(function(x){return x!==id;});renderBerryFilter();});
 function refineSummary(){
   var v=function(id){return $(id).value;},f=[];
   if(+v("f-cost"))f.push("貴重さ"+v("f-cost")+"以下");
@@ -472,11 +495,14 @@ function refineSummary(){
   if(+v("f-flv"))f.push("ねらいのフレーバー"+v("f-flv")+"以上");
   if(+v("f-stars"))f.push("★"+v("f-stars")+(v("f-stars")==="5"?"":"以上"));
   if(+v("f-count"))f.push("きのみ"+v("f-count")+"個以下");
-  $("f-refine-sum").textContent=f.length?"いま効いている絞り込み："+f.join("・"):"いまは絞り込みなし";
+  if(useB.length)f.push("必ず使う "+useB.map(function(id){return short(BY[id]);}).join("・"));
+  if(banB.length)f.push("使わない "+banB.map(function(id){return short(BY[id]);}).join("・"));
+  $("f-refine-sum").textContent=f.length?"いま効いている絞り込み："+f.join("、"):"いまは絞り込みなし";
 }
 function syncSort(){if(!$("f-sort").value)$("f-sort").value="cost";}
-function readForm(){var o={wantP:wantP.slice()};FIELDS.forEach(function(id){o[id]=$(id).value;});return o;}
-function loadForm(o){wantP=(o.wantP||(o.want||[]).map(function(f){return f+"-0";})).filter(function(k){return /^[0-4]-\d$/.test(k)&&POWERS[+k[0]][+k.slice(2)];});syncWant();if(want.length>2){wantP=[];want=[];}FIELDS.forEach(function(id){if(o[id]!=null)$(id).value=o[id];});syncSort();}
+function readForm(){var o={wantP:wantP.slice(),use:useB.slice(),ban:banB.slice()};FIELDS.forEach(function(id){o[id]=$(id).value;});return o;}
+function loadForm(o){wantP=(o.wantP||(o.want||[]).map(function(f){return f+"-0";})).filter(function(k){return /^[0-4]-\d$/.test(k)&&POWERS[+k[0]][+k.slice(2)];});syncWant();if(want.length>2){wantP=[];want=[];}FIELDS.forEach(function(id){if(o[id]!=null)$(id).value=o[id];});syncSort();
+  useB=Array.isArray(o.use)?o.use.slice(0,3):[];banB=Array.isArray(o.ban)?o.ban.slice():[];renderBerryFilter();}
 var lastResults=[];
 function runSearch(){
   var q=readForm();S.form=q;save();refineSummary();
@@ -488,6 +514,8 @@ function runSearch(){
     if(pool==="stock"&&!(S.stock[b.id]>0))return false;
     if(b.kind==="hyper"&&b.tier>tier)return false;
     return b.sum>0||b.cal>0;});
+  P=P.filter(function(b){return banB.indexOf(b.id)<0;});
+  var must=P.map(function(b){return useB.indexOf(b.id)>=0?1:0;}),mustN=useB.length,missing=useB.filter(function(id){return !P.some(function(b){return b.id===id;});});
   var n=P.length,lim=P.map(function(b){return pool==="stock"?Math.min(8,S.stock[b.id]):8;});
   var need=LEVELREQ[level],w0=want.length?want[0]:-1,w1=want.length>1?want[1]:-1,out=[],checked=0,mins=[0,0,0,0,0],wp=wantP.slice();
   wp.forEach(function(k){var f=+k[0];mins[f]=Math.max(mins[f],PMIN[k]||0);});
@@ -495,6 +523,7 @@ function runSearch(){
   var key={cal:function(r){return -r.cal;},lv:function(r){return -r.lv*10000-r.cal;},flv:function(r){return -aim(r)*10000-r.cal;},
     stars:function(r){return -r.total*10000-r.cal;},count:function(r){return r.n*1e7+r.cost*1e4-r.cal;}}[sort]||function(r){return r.cost*100000-r.cal;};
   function test(i,a,j,b,k,c){
+    if(mustN&&must[i]+(j>=0?must[j]:0)+(k>=0?must[k]:0)!==mustN)return;
     checked++;
     var A=P[i],f=[A.f[0]*a,A.f[1]*a,A.f[2]*a,A.f[3]*a,A.f[4]*a],lv=A.lv*a,cal=A.cal*a,cost=A.cost*a,cnt=a,X;
     if(j>=0){X=P[j];f[0]+=X.f[0]*b;f[1]+=X.f[1]*b;f[2]+=X.f[2]*b;f[3]+=X.f[3]*b;f[4]+=X.f[4]*b;lv+=X.lv*b;cal+=X.cal*b;cost+=X.cost*b;cnt+=b;}
@@ -525,6 +554,7 @@ function runSearch(){
   lastResults=out.slice(0,40);
   $("f-status").textContent=checked.toLocaleString()+"通りを調べて "+(out.length>=300?"300件以上":out.length+"件")+" 見つかりました"+(out.length>40?"（上位40件を表示）":"");
   var el=$("f-results");
+  if(missing.length){el.innerHTML='<div class="card"><p><b>「'+missing.map(function(id){return esc(short(BY[id]));}).join("・")+'」は、いまの条件では使えません。</b></p><p class="hint">上の「使うきのみ」や「いじげんきのみの解放」で外れています。その条件を変えるか、絞り込みの「必ず使うきのみ」から外してください。</p></div>';return;}
   if(!n){el.innerHTML='<div class="card"><p>使えるきのみがありません。「きのみ」タブで所持数を入れるか、「使うきのみ」を変えてください。</p></div>';return;}
   if(!out.length){el.innerHTML='<div class="card"><p><b>条件に合うレシピがありません。</b></p><p class="hint">きのみ3種類までの組み合わせで探しています。パワーLv.の狙いを下げる、絞り込みをゆるめる、使えるきのみの数を増やす、いじげんきのみの解放を進める、のどれかで見つかりやすくなります。</p></div>';return;}
   el.innerHTML=lastResults.map(function(r,x){return cardHTML(r.items,r,rift,'<button class="btn ghost" data-open="'+x+'">「作る」で開く</button><button class="btn plain" data-keep="'+x+'">保存</button>',wp);}).join("");
@@ -535,7 +565,10 @@ var refineTimer=0;
 $("f-refine").addEventListener("change",function(){clearTimeout(refineTimer);goSearch();});
 $("f-sort").addEventListener("change",goSearch);
 $("f-refine").addEventListener("input",function(e){if(e.target.type!=="number")return;clearTimeout(refineTimer);refineTimer=setTimeout(goSearch,600);});
-$("f-reset").addEventListener("click",function(){REFINE.forEach(function(id){$(id).value=id==="f-stars"?"0":"";});goSearch();});
+$("f-reset").addEventListener("click",function(){REFINE.forEach(function(id){$(id).value=id==="f-stars"?"0":"";});useB=[];banB=[];renderBerryFilter();goSearch();});
+$("f-refine").addEventListener("click",function(e){var b=e.target.closest("[data-use],[data-ban]");if(!b)return;
+  if(b.dataset.use)useB=useB.filter(function(x){return x!==b.dataset.use;});else banB=banB.filter(function(x){return x!==b.dataset.ban;});
+  renderBerryFilter();goSearch();});
 $("f-results").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;
   var r=lastResults[b.dataset.open!=null?b.dataset.open:b.dataset.keep];if(!r)return;
   var ids=[];r.items.forEach(function(it){for(var c=0;c<it[1];c++)ids.push(it[0].id);});
@@ -678,7 +711,7 @@ loadForm(S.form||{wantP:["2-1"],"f-level":"3","f-stars":"3","f-rift":"3","f-slot
 $("tab-conf").hidden=!LOCAL; // 公開ページはオーナーと確認できるまで、公開サイトでは常に出さない
 renderFlavorChips();renderPower();showTab(S.tab);runSearch();
 /* 共有辞書: 読むのは全員、書けるのはオーナーだけ */
-function refresh(){build();if(S.tab==="make")renderMake();if(S.tab==="berry")renderBerry();if(S.tab==="conf"){renderEdit();fillEdit();}runSearch();}
+function refresh(){build();renderBerryFilter();if(S.tab==="make")renderMake();if(S.tab==="berry")renderBerry();if(S.tab==="conf"){renderEdit();fillEdit();}runSearch();}
 if(window.claude&&window.claude.use){
   window.claude.use("db").then(function(d){
     if(!d)return;db=d;renderEdit();
