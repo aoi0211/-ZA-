@@ -126,6 +126,18 @@ thead th[aria-sort]{color:var(--accent)}
 thead th[class^="f"]{color:var(--fc);font-weight:700;font-size:13px}
 .legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px}
 .legend span{color:var(--fc);font-weight:700}
+.ftable{font-size:13px}
+.ftable th,.ftable td{white-space:normal;text-align:left;vertical-align:middle;padding:8px 6px;position:static;background:none}
+.ftable thead th{cursor:default;background:var(--sunken)}
+.ftable td:first-child{font-weight:700;width:34%}
+.ftable td:last-child,.ftable th:last-child{width:26%}
+.ftable small{display:block;font-weight:400;font-size:11px;color:var(--muted);line-height:1.35}
+.ftable input[type=number],.ftable select{width:78px;padding:5px 6px}
+.ftable select{width:auto;max-width:100%}
+.fin{display:flex;align-items:center;gap:5px;white-space:nowrap;color:var(--muted);font-size:12px}
+.fin+.fin{margin-top:5px}
+.srt{display:inline-flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap}
+.srt input{accent-color:var(--accent);width:17px;height:17px;margin:0}
 td.z{color:var(--line)}
 td.v{color:var(--fc);font-weight:700}
 tr:last-child td{border-bottom:0}
@@ -175,24 +187,47 @@ tr:last-child td{border-bottom:0}
           <option value="4">Lv.3が半分以上</option>
           <option value="5">Lv.3確定</option>
         </select></label>
-      <label class="field"><span>星の数（フレーバーランク）</span>
-        <select id="f-stars"><option value="0">指定なし</option><option value="1">★1以上</option><option value="2">★2以上</option><option value="3">★3以上</option><option value="4">★4以上</option><option value="5">★5</option></select></label>
-      <label class="field"><span>ハラモチ（kcal以上）</span><input type="number" id="f-cal" min="0" step="50" inputmode="numeric" placeholder="例 1500"></label>
-      <label class="field"><span>腹持ち時間（分以上）</span><input type="number" id="f-min" min="0" step="0.5" inputmode="decimal" placeholder="例 5"></label>
       <label class="field"><span>入るひずみの★</span>
         <select id="f-rift"><option value="1">★1</option><option value="2">★2</option><option value="3">★3</option><option value="4">★4</option><option value="5">★5</option></select></label>
-      <label class="field"><span>プラスLv.（以上）</span><input type="number" id="f-lv" min="0" max="100" inputmode="numeric" placeholder="例 40"></label>
       <label class="field"><span>使えるきのみの数</span>
         <select id="f-slots"><option value="3">3個（ミアレバター）</option><option value="4">4個（スーパー）</option><option value="5">5個（ハイパー）</option><option value="6">6個（ウルトラ）</option><option value="7">7個（マスター）</option><option value="8">8個（いじげん）</option></select></label>
       <label class="field"><span>使うきのみ</span>
         <select id="f-pool"><option value="all">すべて</option><option value="normal">通常きのみだけ</option><option value="hyper">いじげんきのみだけ</option><option value="stock">所持数を入れたものだけ</option></select></label>
       <label class="field"><span>いじげんきのみの解放</span>
         <select id="f-tier"></select></label>
-      <label class="field"><span>並び順</span>
-        <select id="f-sort"><option value="cost">貴重なきのみを節約</option><option value="cal">ハラモチが多い順</option><option value="lv">プラスLv.が高い順</option><option value="flv">ねらいのパワーが出やすい順</option></select></label>
     </div>
-    <div class="row"><button class="btn" id="f-run">きのみを逆引きする</button><span class="hint" id="f-status"></span></div>
+    <div class="row"><button class="btn" id="f-run">きのみを逆引きする</button></div>
   </div>
+  <div class="panel" id="f-refine">
+    <div class="row"><h2>絞り込みと並び順</h2><button class="btn plain" id="f-reset">絞り込みを消す</button></div>
+    <input type="hidden" id="f-sort" value="cost">
+    <table class="ftable">
+      <thead><tr><th>項目</th><th>絞り込み</th><th>並び順</th></tr></thead>
+      <tbody>
+        <tr><td>貴重なきのみを節約<small>使うきのみの貴重さの合計</small></td>
+            <td><span class="fin"><input type="number" id="f-cost" min="0" inputmode="numeric" placeholder="例 40" aria-label="貴重さの上限">以下</span></td>
+            <td><label class="srt"><input type="radio" name="f-sortr" id="f-sort-cost" value="cost"> 少ない順</label></td></tr>
+        <tr><td>ハラモチ<small>腹持ち時間は上の「入るひずみの★」で計算</small></td>
+            <td><span class="fin"><input type="number" id="f-cal" min="0" step="50" inputmode="numeric" placeholder="例 1500" aria-label="ハラモチの下限">kcal以上</span>
+                <span class="fin"><input type="number" id="f-min" min="0" step="0.5" inputmode="decimal" placeholder="例 5" aria-label="腹持ち時間の下限">分以上</span></td>
+            <td><label class="srt"><input type="radio" name="f-sortr" id="f-sort-cal" value="cal"> 多い順</label></td></tr>
+        <tr><td>プラスLv.</td>
+            <td><span class="fin"><input type="number" id="f-lv" min="0" max="100" inputmode="numeric" placeholder="例 40" aria-label="プラスレベルの下限">以上</span></td>
+            <td><label class="srt"><input type="radio" name="f-sortr" id="f-sort-lv" value="lv"> 高い順</label></td></tr>
+        <tr><td>ねらいのパワーの出やすさ<small>ねらいのフレーバーの数値</small></td>
+            <td><span class="fin"><input type="number" id="f-flv" min="0" step="10" inputmode="numeric" placeholder="例 420" aria-label="ねらいのフレーバー数値の下限">以上</span></td>
+            <td><label class="srt"><input type="radio" name="f-sortr" id="f-sort-flv" value="flv"> 高い順</label></td></tr>
+        <tr><td>星の数<small>フレーバーランク</small></td>
+            <td><select id="f-stars" aria-label="星の数の絞り込み"><option value="0">指定なし</option><option value="1">★1以上</option><option value="2">★2以上</option><option value="3">★3以上</option><option value="4">★4以上</option><option value="5">★5</option></select></td>
+            <td><label class="srt"><input type="radio" name="f-sortr" id="f-sort-stars" value="stars"> 多い順</label></td></tr>
+        <tr><td>使うきのみの個数</td>
+            <td><span class="fin"><input type="number" id="f-count" min="3" max="8" inputmode="numeric" placeholder="例 6" aria-label="きのみの個数の上限">個以下</span></td>
+            <td><label class="srt"><input type="radio" name="f-sortr" id="f-sort-count" value="count"> 少ない順</label></td></tr>
+      </tbody>
+    </table>
+    <p class="note">ここを変えると、すぐに探し直します。貴重さは、通常きのみを1個＝1、いじげんきのみを解放が遅いものほど高く1個＝3〜20として足した数です。各レシピにも表示しています。</p>
+  </div>
+  <p class="hint" id="f-status" role="status"></p>
   <div class="cards" id="f-results"></div>
 </section>
 
@@ -382,7 +417,7 @@ function cardHTML(items,r,rift,actions,wp){
   if(!pw.length)pw.push('<div class="hint">どのフレーバーも120未満なのでパワーはつきません</div>');
   var tags=(r.rainbow?'<span class="tag">ミックス</span>':"")+(r.stars<rift?'<span class="tag warn">ひずみより★が低い</span>':"");
   return '<div class="card"><div class="recipe">'+rec+"</div>"+
-   '<div class="stats"><span>'+starStr(r.stars)+" 合計"+r.total+"</span><span>プラスLv. <b>+"+r.lv+"</b></span><span>ハラモチ <b>"+r.cal+"</b>kcal</span><span>★"+rift+"のひずみで約<b>"+fmtTime(r.cal/drain()[rift-1])+"</b></span>"+tags+"</div>"+
+   '<div class="stats"><span>'+starStr(r.stars)+" 合計"+r.total+"</span><span>プラスLv. <b>+"+r.lv+"</b></span><span>貴重さ <b>"+r.cost+"</b></span><span>ハラモチ <b>"+r.cal+"</b>kcal</span><span>★"+rift+"のひずみで約<b>"+fmtTime(r.cal/drain()[rift-1])+"</b></span>"+tags+"</div>"+
    '<div class="flv">'+flv+'</div><div class="pw">'+pw.join("")+"</div>"+(actions?'<div class="row">'+actions+"</div>":"")+"</div>";
 }
 
@@ -418,14 +453,16 @@ $("f-flavors").addEventListener("click",function(e){var b=e.target.closest("butt
   syncWant();renderFlavorChips();});
 $("f-tier").innerHTML=TIERS.slice(1).map(function(t,i){return '<option value="'+(i+1)+'">'+(i===6?"すべて解放（"+t+"）":t+"まで")+"</option>";}).reverse().join("");
 
-var FIELDS=["f-level","f-stars","f-cal","f-min","f-rift","f-lv","f-slots","f-pool","f-tier","f-sort"];
+var FIELDS=["f-level","f-stars","f-cal","f-min","f-rift","f-lv","f-slots","f-pool","f-tier","f-sort","f-cost","f-flv","f-count"];
+var REFINE=["f-stars","f-cal","f-min","f-lv","f-cost","f-flv","f-count"];
+function syncSort(){var r=$("f-sort-"+$("f-sort").value)||$("f-sort-cost");r.checked=true;$("f-sort").value=r.value;}
 function readForm(){var o={wantP:wantP.slice()};FIELDS.forEach(function(id){o[id]=$(id).value;});return o;}
-function loadForm(o){wantP=(o.wantP||(o.want||[]).map(function(f){return f+"-0";})).filter(function(k){return /^[0-4]-\d$/.test(k)&&POWERS[+k[0]][+k.slice(2)];});syncWant();if(want.length>2){wantP=[];want=[];}FIELDS.forEach(function(id){if(o[id]!=null)$(id).value=o[id];});}
+function loadForm(o){wantP=(o.wantP||(o.want||[]).map(function(f){return f+"-0";})).filter(function(k){return /^[0-4]-\d$/.test(k)&&POWERS[+k[0]][+k.slice(2)];});syncWant();if(want.length>2){wantP=[];want=[];}FIELDS.forEach(function(id){if(o[id]!=null)$(id).value=o[id];});syncSort();}
 var lastResults=[];
 function runSearch(){
   var q=readForm();S.form=q;save();
   var level=+q["f-level"],minStars=+q["f-stars"],rift=+q["f-rift"],drainRate=drain()[rift-1];
-  var minCal=Math.max(+q["f-cal"]||0,(+q["f-min"]||0)*60*drainRate),minLv=+q["f-lv"]||0,slots=+q["f-slots"],pool=q["f-pool"],tier=+q["f-tier"],sort=q["f-sort"];
+  var minCal=Math.max(+q["f-cal"]||0,(+q["f-min"]||0)*60*drainRate),minLv=+q["f-lv"]||0,maxCost=+q["f-cost"]||Infinity,minFlv=+q["f-flv"]||0,maxCount=+q["f-count"]||8,slots=+q["f-slots"],pool=q["f-pool"],tier=+q["f-tier"],sort=q["f-sort"];
   var P=B.filter(function(b){
     if(pool==="normal"&&b.kind==="hyper")return false;
     if(pool==="hyper"&&b.kind==="normal")return false;
@@ -435,14 +472,16 @@ function runSearch(){
   var n=P.length,lim=P.map(function(b){return pool==="stock"?Math.min(8,S.stock[b.id]):8;});
   var need=LEVELREQ[level],w0=want.length?want[0]:-1,w1=want.length>1?want[1]:-1,out=[],checked=0,mins=[0,0,0,0,0],wp=wantP.slice();
   wp.forEach(function(k){var f=+k[0];mins[f]=Math.max(mins[f],PMIN[k]||0);});
-  var key=sort==="cal"?function(r){return -r.cal;}:sort==="lv"?function(r){return -r.lv*10000-r.cal;}:sort==="flv"?function(r){return -(want.length?Math.min.apply(null,want.map(function(i){return r.f[i];})):r.total);}:function(r){return r.cost*100000-r.cal;};
+  function aim(r){return want.length?Math.min.apply(null,want.map(function(i){return r.f[i];})):r.max;}
+  var key={cal:function(r){return -r.cal;},lv:function(r){return -r.lv*10000-r.cal;},flv:function(r){return -aim(r)*10000-r.cal;},
+    stars:function(r){return -r.total*10000-r.cal;},count:function(r){return r.n*1e7+r.cost*1e4-r.cal;}}[sort]||function(r){return r.cost*100000-r.cal;};
   function test(i,a,j,b,k,c){
     checked++;
     var A=P[i],f=[A.f[0]*a,A.f[1]*a,A.f[2]*a,A.f[3]*a,A.f[4]*a],lv=A.lv*a,cal=A.cal*a,cost=A.cost*a,cnt=a,X;
     if(j>=0){X=P[j];f[0]+=X.f[0]*b;f[1]+=X.f[1]*b;f[2]+=X.f[2]*b;f[3]+=X.f[3]*b;f[4]+=X.f[4]*b;lv+=X.lv*b;cal+=X.cal*b;cost+=X.cost*b;cnt+=b;}
     if(k>=0){X=P[k];f[0]+=X.f[0]*c;f[1]+=X.f[1]*c;f[2]+=X.f[2]*c;f[3]+=X.f[3]*c;f[4]+=X.f[4]*c;lv+=X.lv*c;cal+=X.cal*c;cost+=X.cost*c;cnt+=c;}
     var r=finish(f,lv,cal,cnt,cost);
-    if(r.stars<minStars||r.cal<minCal||r.lv<minLv)return;
+    if(r.stars<minStars||r.cal<minCal||r.lv<minLv||cost>maxCost||cnt>maxCount||(minFlv&&aim(r)<minFlv))return;
     if(w0>=0){
       var lo=w1>=0?Math.min(f[w0],f[w1]):f[w0];
       for(var x=0;x<5;x++)if(x!==w0&&x!==w1&&f[x]>=lo)return;
@@ -454,7 +493,7 @@ function runSearch(){
     out.push(r);if(out.length>5000){out.sort(function(p,q){return p.key-q.key;});out.length=300;}
   }
   var i,j,k,a,b,t;
-  for(t=3;t<=slots;t++){
+  for(t=3;t<=Math.min(slots,maxCount);t++){
     for(i=0;i<n;i++){
       if(lim[i]>=t)test(i,t,-1,0,-1,0);
       for(j=i+1;j<n;j++){
@@ -468,10 +507,15 @@ function runSearch(){
   $("f-status").textContent=checked.toLocaleString()+"通りを調べて "+(out.length>=300?"300件以上":out.length+"件")+" 見つかりました"+(out.length>40?"（上位40件を表示）":"");
   var el=$("f-results");
   if(!n){el.innerHTML='<div class="card"><p>使えるきのみがありません。「きのみ」タブで所持数を入れるか、「使うきのみ」を変えてください。</p></div>';return;}
-  if(!out.length){el.innerHTML='<div class="card"><p><b>条件に合うレシピがありません。</b></p><p class="hint">きのみ3種類までの組み合わせで探しています。パワーLv.の狙いを下げる、使えるきのみの数を増やす、いじげんきのみの解放を進める、のどれかで見つかりやすくなります。</p></div>';return;}
+  if(!out.length){el.innerHTML='<div class="card"><p><b>条件に合うレシピがありません。</b></p><p class="hint">きのみ3種類までの組み合わせで探しています。パワーLv.の狙いを下げる、絞り込みをゆるめる、使えるきのみの数を増やす、いじげんきのみの解放を進める、のどれかで見つかりやすくなります。</p></div>';return;}
   el.innerHTML=lastResults.map(function(r,x){return cardHTML(r.items,r,rift,'<button class="btn ghost" data-open="'+x+'">「作る」で開く</button><button class="btn plain" data-keep="'+x+'">保存</button>',wp);}).join("");
 }
-$("f-run").addEventListener("click",function(){$("f-status").textContent="さがしています…";setTimeout(runSearch,20);});
+function goSearch(){$("f-status").textContent="さがしています…";setTimeout(runSearch,20);}
+$("f-run").addEventListener("click",goSearch);
+var refineTimer=0;
+$("f-refine").addEventListener("change",function(e){if(e.target.name==="f-sortr")$("f-sort").value=e.target.value;clearTimeout(refineTimer);goSearch();});
+$("f-refine").addEventListener("input",function(e){if(e.target.type!=="number")return;clearTimeout(refineTimer);refineTimer=setTimeout(goSearch,600);});
+$("f-reset").addEventListener("click",function(){REFINE.forEach(function(id){$(id).value=id==="f-stars"?"0":"";});goSearch();});
 $("f-results").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;
   var r=lastResults[b.dataset.open!=null?b.dataset.open:b.dataset.keep];if(!r)return;
   var ids=[];r.items.forEach(function(it){for(var c=0;c<it[1];c++)ids.push(it[0].id);});
