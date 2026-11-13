@@ -223,10 +223,10 @@ tr:last-child td{border-bottom:0}
             <td><select id="f-stars" aria-label="星の数の絞り込み"><option value="0">指定なし</option><option value="1">★1以上</option><option value="2">★2以上</option><option value="3">★3以上</option><option value="4">★4以上</option><option value="5">★5</option></select></td></tr>
         <tr><td>使うきのみの個数</td>
             <td><span class="fin"><input type="number" id="f-count" min="3" max="8" inputmode="numeric" placeholder="例 6" aria-label="きのみの個数の上限">個以下</span></td></tr>
-        <tr><td>必ず使うきのみ<small>このきのみが入ったレシピだけ（3種類まで）</small></td>
-            <td><div class="chips bchips" id="f-use-chips"></div><select id="f-use-add" aria-label="必ず使うきのみを足す"></select></td></tr>
-        <tr><td>使わないきのみ<small>このきのみを外したレシピだけ</small></td>
-            <td><div class="chips bchips" id="f-ban-chips"></div><select id="f-ban-add" aria-label="使わないきのみを足す"></select></td></tr>
+        <tr><td>きのみ：含む<small>このきのみを含むレシピだけ（3種類まで）</small></td>
+            <td><div class="chips bchips" id="f-use-chips"></div><select id="f-use-add" aria-label="含むきのみを足す"></select></td></tr>
+        <tr><td>きのみ：含まない<small>このきのみを含まないレシピだけ</small></td>
+            <td><div class="chips bchips" id="f-ban-chips"></div><select id="f-ban-add" aria-label="含まないきのみを足す"></select></td></tr>
       </tbody>
     </table>
     <p class="note">ここを変えると、すぐに探し直します。並び順は、この表の下でいつでも選べます。貴重さは、通常きのみを1個＝1、いじげんきのみを解放が遅いものほど高く1個＝3〜20として足した数です。各レシピにも表示しています。</p>
@@ -470,7 +470,7 @@ $("f-tier").innerHTML=TIERS.slice(1).map(function(t,i){return '<option value="'+
 
 var FIELDS=["f-level","f-stars","f-cal","f-min","f-rift","f-lv","f-slots","f-pool","f-tier","f-sort","f-cost","f-flv","f-count"];
 var REFINE=["f-stars","f-cal","f-min","f-lv","f-cost","f-flv","f-count"];
-var useB=[],banB=[]; // 必ず使う / 使わない きのみのid
+var useB=[],banB=[]; // 含む / 含まない きのみのid
 function renderBerryFilter(){
   useB=useB.filter(function(id){return BY[id];});banB=banB.filter(function(id){return BY[id];});
   var chip=function(kind){return function(id){var b=BY[id];return '<button class="chip f'+b.top+'" data-'+kind+'="'+id+'" title="タップで外す">'+esc(short(b))+" ✕</button>";};};
@@ -495,8 +495,8 @@ function refineSummary(){
   if(+v("f-flv"))f.push("ねらいのフレーバー"+v("f-flv")+"以上");
   if(+v("f-stars"))f.push("★"+v("f-stars")+(v("f-stars")==="5"?"":"以上"));
   if(+v("f-count"))f.push("きのみ"+v("f-count")+"個以下");
-  if(useB.length)f.push("必ず使う "+useB.map(function(id){return short(BY[id]);}).join("・"));
-  if(banB.length)f.push("使わない "+banB.map(function(id){return short(BY[id]);}).join("・"));
+  if(useB.length)f.push("含む "+useB.map(function(id){return short(BY[id]);}).join("・"));
+  if(banB.length)f.push("含まない "+banB.map(function(id){return short(BY[id]);}).join("・"));
   $("f-refine-sum").textContent=f.length?"いま効いている絞り込み："+f.join("、"):"いまは絞り込みなし";
 }
 function syncSort(){if(!$("f-sort").value)$("f-sort").value="cost";}
@@ -554,7 +554,7 @@ function runSearch(){
   lastResults=out.slice(0,40);
   $("f-status").textContent=checked.toLocaleString()+"通りを調べて "+(out.length>=300?"300件以上":out.length+"件")+" 見つかりました"+(out.length>40?"（上位40件を表示）":"");
   var el=$("f-results");
-  if(missing.length){el.innerHTML='<div class="card"><p><b>「'+missing.map(function(id){return esc(short(BY[id]));}).join("・")+'」は、いまの条件では使えません。</b></p><p class="hint">上の「使うきのみ」や「いじげんきのみの解放」で外れています。その条件を変えるか、絞り込みの「必ず使うきのみ」から外してください。</p></div>';return;}
+  if(missing.length){el.innerHTML='<div class="card"><p><b>「'+missing.map(function(id){return esc(short(BY[id]));}).join("・")+'」は、いまの条件では使えません。</b></p><p class="hint">上の「使うきのみ」や「いじげんきのみの解放」で外れています。その条件を変えるか、絞り込みの「きのみ：含む」から外してください。</p></div>';return;}
   if(!n){el.innerHTML='<div class="card"><p>使えるきのみがありません。「きのみ」タブで所持数を入れるか、「使うきのみ」を変えてください。</p></div>';return;}
   if(!out.length){el.innerHTML='<div class="card"><p><b>条件に合うレシピがありません。</b></p><p class="hint">きのみ3種類までの組み合わせで探しています。パワーLv.の狙いを下げる、絞り込みをゆるめる、使えるきのみの数を増やす、いじげんきのみの解放を進める、のどれかで見つかりやすくなります。</p></div>';return;}
   el.innerHTML=lastResults.map(function(r,x){return cardHTML(r.items,r,rift,'<button class="btn ghost" data-open="'+x+'">「作る」で開く</button><button class="btn plain" data-keep="'+x+'">保存</button>',wp);}).join("");
